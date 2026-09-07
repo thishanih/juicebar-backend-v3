@@ -81,3 +81,9 @@ test("order status mutations use PUT instead of GET", () => {
   assert.equal(orderRoutes["/complete/:orderId"].put, true);
   assert.equal(orderRoutes["/complete/:orderId"].get, undefined);
 });
+
+test("payment failure events are supported for stock restoration", async () => {
+  const paymentServiceSource = await import("../src/services/payment.service.js");
+  assert.equal(typeof paymentServiceSource.webhookService, "function");
+  assert.equal(typeof paymentServiceSource.recoverAbandonedPaymentOrders, "function");
+});

@@ -1,12 +1,51 @@
 import Stripe from "stripe";
 import { orderModel } from "../models/oder.model.js";
-import { PaymentType, orderStatus } from "../shared/constants.js";
+import { variantModel } from "../models/variant.modal.js";
+import { PaymentType, orderStatus, StockStatus } from "../shared/constants.js";
 import HttpError from "../shared/htttp.error.js";
 import {
   paymentAmountInCents,
   paymentCurrency,
   paymentIntentMatchesOrder,
 } from "../shared/paymentVerification.js";
+
+const restoreOrderStock = async (order) => {
+  await Promise.all(
+    order.product.map((item) =>
+      variantModel.updateOne(
+        { _id: item.variantId },
+        {
+          $inc: { stock: Number(item.qty) },
+          $set: { stockStatus: StockStatus.inStock },
+        }
+      )
+    )
+  );
+};
+
+const releasePendingOrderStock = async (orderId, paymentId, eventId) => {
+  const order = await orderModel.findOneAndUpdate(
+    {
+      orderId: orderId,
+      paymentMethod: PaymentType.online,
+      orderStatus: orderStatus.pending,
+      "paymentInfo.paymentId": paymentId,
+      "paymentInfo.stockReleasedAt": { $exists: false },
+    },
+    {
+      $set: {
+        orderStatus: orderStatus.reject,
+        "paymentInfo.eventId": eventId,
+        "paymentInfo.stockReleasedAt": new Date(),
+      },
+    },
+    { new: true }
+  );
+
+  if (!order) return false;
+  await restoreOrderStock(order);
+  return true;
+};
 
 //////////////////////////////////////// Create payment Service ///////////////////////////////////////////////
 
@@ -104,7 +143,44 @@ export const webhookService = async (stripeHerder, dataBody) => {
       if (updateResult.modifiedCount === 0) return "Payment already processed";
 
       return "payment_intent.succeeded";
+    case "payment_intent.payment_failed":
+    case "payment_intent.canceled": {
+      const paymentIntent = event.data.object;
+      const orderId = paymentIntent.metadata?.orderId;
+
+      if (!orderId || !paymentIntent.id) throw HttpError.badRequest("Invalid failed payment event");
+
+      const released = await releasePendingOrderStock(orderId, paymentIntent.id, event.id);
+      return released ? "payment stock restored" : "Payment already processed";
+    }
     default:
       return `Unhandled event type ${event.type}`;
+  }
+};
+
+export const recoverAbandonedPaymentOrders = async () => {
+  const timeoutMinutes = Number(process.env.PAYMENT_PENDING_TIMEOUT_MINUTES || 60);
+  const cutoff = new Date(Date.now() - timeoutMinutes * 60 * 1000); // Calculate the cutoff time for pending orders based on the timeout setting
+  const pendingOrders = await orderModel.find({
+    paymentMethod: PaymentType.online,
+    orderStatus: orderStatus.pending,
+    createdAt: { $lt: cutoff },
+    "paymentInfo.paymentId": { $exists: true },
+  });
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+  for (const order of pendingOrders) {
+    const paymentIntent = await stripe.paymentIntents.retrieve(order.paymentInfo.paymentId);
+    if (paymentIntent.status === "succeeded" || paymentIntent.status === "processing") continue;
+
+    if (paymentIntent.status !== "canceled") {
+      await stripe.paymentIntents.cancel(paymentIntent.id);
+    }
+
+    await releasePendingOrderStock(
+      order.orderId,
+      paymentIntent.id,
+      `abandoned-${paymentIntent.id}`
+    );
   }
 };

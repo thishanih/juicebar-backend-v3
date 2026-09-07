@@ -71,6 +71,12 @@ STRIPE_PUBLISHABLE_KEY=pk_test_replace_me
 STRIPE_SECRET_KEY=sk_test_replace_me
 STRIPE_WEBHOOK_SECRET_KEY=whsec_replace_me
 STRIPE_LIVE_MODE=false
+PAYMENT_PENDING_TIMEOUT_MINUTES=60
+
+# Either terminate TLS at a reverse proxy, or provide certificate files directly:
+FORCE_HTTPS=true
+HTTPS_KEY_PATH=/absolute/path/to/tls/key.pem
+HTTPS_CERT_PATH=/absolute/path/to/tls/cert.pem
 
 SENTRY_DSN=https://public-key@organization.ingest.sentry.io/project-id
 SENTRY_TRACES_SAMPLE_RATE=0.1

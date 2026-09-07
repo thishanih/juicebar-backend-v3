@@ -11,6 +11,9 @@ const paymentSchema = mongoose.Schema(
     paidAt: {
       type: Date,
     },
+    stockReleasedAt: {
+      type: Date,
+    },
   },
   {
     timestamps: true,

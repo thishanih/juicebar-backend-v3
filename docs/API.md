@@ -658,4 +658,6 @@ All dashboard endpoints require Admin authentication and these query parameters:
 - Stripe client secrets and raw webhook events are not persisted. Run `CONFIRM_PAYMENT_DATA_REDACTION=true npm run security:redact-payment-data` once per affected environment to remove legacy data.
 - Browser requests are restricted to `WEB_BASE_URL`; production deployments must use HTTPS and configure `STRIPE_LIVE_MODE=true` for live Stripe events.
 - Cancel and complete order operations use `PUT`; clients must update from the former `GET` endpoints.
+- Failed and canceled Stripe PaymentIntents release reserved stock. A scheduled recovery checks stale pending orders after `PAYMENT_PENDING_TIMEOUT_MINUTES` and releases stock for abandoned PaymentIntents.
+- Configure `FORCE_HTTPS=true` behind a TLS reverse proxy, or set `HTTPS_KEY_PATH` and `HTTPS_CERT_PATH` for native TLS. Never commit certificate or private-key files.
 - Never put JWT secrets, database credentials, Cloudinary credentials, Stripe secret keys, SMTP passwords, or production environment files in source control. Rotate the credentials that were previously stored in source code.

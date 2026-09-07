@@ -1,4 +1,6 @@
 import express from "express";
+import https from "https";
+import { readFileSync } from "fs";
 import cors from "cors";
 import helmet from "helmet";
 import dotenv from "dotenv";
@@ -16,8 +18,10 @@ console.log("Running environment : " + env);
 
 const { default: Database } = await import("./shared/database.js");
 const { default: apiRouter } = await import("./routers/api.router.js");
+const { recoverAbandonedPaymentOrders } = await import("./services/payment.service.js");
 
 const app = express();
+app.set("trust proxy", 1);
 const allowedOrigins = new Set(
   (process.env.WEB_BASE_URL || "")
     .split(",")
@@ -50,6 +54,12 @@ app.use("/api/online-payment/webhook", express.raw({ type: "application/json" })
 app.use(express.json());
 app.use(logger);
 app.use(express.urlencoded({ extended: true }));
+app.use((req, res, next) => {
+  if (process.env.FORCE_HTTPS === "true" && !req.secure) {
+    return res.redirect(308, `https://${req.get("host")}${req.originalUrl}`);
+  }
+  next();
+});
 app.use(
   cors({
     origin(origin, callback) {
@@ -66,6 +76,31 @@ app.use(errorHandler);
 
 Database();
 const port = process.env.PORT || 5000;
-app.listen(port, () => {
-  console.log("Sever Connected port " + port);
+const httpsKeyPath = process.env.HTTPS_KEY_PATH;
+const httpsCertPath = process.env.HTTPS_CERT_PATH;
+const server =
+  httpsKeyPath && httpsCertPath
+    ? https.createServer(
+        {
+          key: readFileSync(httpsKeyPath),
+          cert: readFileSync(httpsCertPath),
+        },
+        app
+      )
+    : app;
+
+server.listen(port, () => {
+  console.log(`${httpsKeyPath && httpsCertPath ? "HTTPS" : "HTTP"} server connected port ${port}`);
 });
+
+if (process.env.STRIPE_SECRET_KEY) {
+  const recoveryInterval = setInterval(
+    () => {
+      recoverAbandonedPaymentOrders().catch((error) => {
+        console.error("Failed to recover abandoned payment orders", error);
+      });
+    },
+    5 * 60 * 1000 // 5 minutes in milliseconds
+  );
+  recoveryInterval.unref();
+}
