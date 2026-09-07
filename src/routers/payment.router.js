@@ -1,5 +1,4 @@
 import express from "express";
-import bodyParser from "body-parser";
 import { webhookService } from "../services/payment.service.js";
 
 const onlinePaymentRouter = express.Router();
@@ -18,24 +17,20 @@ onlinePaymentRouter.get("/config", (req, res) => {
   }
 });
 
-onlinePaymentRouter.post(
-  "/webhook",
-  bodyParser.raw({ type: "application/json" }),
-  async (req, res, next) => {
-    try {
-      const stripeHeaders = req.headers["stripe-signature"];
-      const DataBody = req.body;
+onlinePaymentRouter.post("/webhook", async (req, res, next) => {
+  try {
+    const stripeHeaders = req.headers["stripe-signature"];
+    const dataBody = req.body;
 
-      const result = await webhookService(stripeHeaders, DataBody);
+    const result = await webhookService(stripeHeaders, dataBody);
 
-      res.status(200).json({
-        message: "Webhook Successfully",
-        data: result,
-      });
-    } catch (err) {
-      next(err);
-    }
+    res.status(200).json({
+      message: "Webhook Successfully",
+      data: result,
+    });
+  } catch (err) {
+    next(err);
   }
-);
+});
 
 export default onlinePaymentRouter;

@@ -1,29 +1,44 @@
 import nodemailer from "nodemailer";
 
 class EmailService {
-  constructor() {
-    this.transporter = nodemailer.createTransport({
-      service: "gmail",
+  getTransporter() {
+    const port = Number(process.env.SMTP_PORT);
+
+    if (
+      !process.env.SMTP_HOST ||
+      !Number.isInteger(port) ||
+      !process.env.SMTP_USERNAME ||
+      !process.env.SMTP_PASSWORD
+    ) {
+      throw new Error("SMTP configuration is required");
+    }
+
+    return nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: port,
+      secure: port === 465,
       auth: {
-        user: "thishan.developer@gmail.com",
-        pass: "bngb lbgk yxgk odyp",
+        user: process.env.SMTP_USERNAME,
+        pass: process.env.SMTP_PASSWORD,
+      },
+      tls: {
+        rejectUnauthorized: true,
+        minVersion: "TLSv1.2",
       },
     });
   }
 
   async registerStaff() {
-    try {
-      const mailOptions = {
-        from: "thishan.developer@gmail.com",
-        to: "thishan.developer@gmail.com",
-        subject: "Subject",
-        text: "Email content",
-      };
-      const info = await this.transporter.sendMail(mailOptions);
-      return info;
-    } catch (error) {
-      throw error;
-    }
+    const transporter = this.getTransporter();
+    const from = process.env.SMTP_FROM || process.env.SMTP_USERNAME;
+    const to = process.env.SMTP_TO || process.env.SMTP_USERNAME;
+
+    return transporter.sendMail({
+      from: from,
+      to: to,
+      subject: "Subject",
+      text: "Email content",
+    });
   }
 }
 

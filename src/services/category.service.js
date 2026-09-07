@@ -8,7 +8,7 @@ import {
 import { categoryStatus } from "../shared/constants.js";
 
 import HttpError from "../shared/htttp.error.js";
-import cloudinary from "cloudinary";
+import { getCloudinary } from "../shared/cloudinary.config.js";
 import { getCloudinaryProductId } from "../shared/cloudinary.productId.js";
 
 //////////////////////////////////////// Category Add //////////////////////////
@@ -16,7 +16,8 @@ export const addCategoryService = async (uploadImage, data) => {
   const { error } = addCategoryValidation(data);
   if (error) throw HttpError.badRequest(error.details[0].message);
 
-  const uploadImageUrl = await cloudinary.v2.uploader.upload(uploadImage);
+  const cloudinary = getCloudinary();
+  const uploadImageUrl = await cloudinary.uploader.upload(uploadImage);
   if (!uploadImageUrl) throw HttpError.badRequest("define image url");
 
   const category = new categoryModel({
@@ -83,9 +84,10 @@ export const editCategory = async (data, uploadImage) => {
   let imageUrl;
 
   if (uploadImage) {
+    const cloudinary = getCloudinary();
     const getProductId = await getCloudinaryProductId(previousImageUrl);
-    await cloudinary.v2.uploader.destroy(getProductId);
-    const uploadImageUrl = await cloudinary.v2.uploader.upload(uploadImage);
+    await cloudinary.uploader.destroy(getProductId);
+    const uploadImageUrl = await cloudinary.uploader.upload(uploadImage);
     imageUrl = uploadImageUrl.secure_url;
   } else {
     imageUrl = data.photo;

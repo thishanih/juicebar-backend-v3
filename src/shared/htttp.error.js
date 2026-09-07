@@ -12,6 +12,10 @@ export default class HttpError extends Error {
     return new this(msg ? msg : "Unauthorized", HttpStatusCodes.UNAUTHORIZED);
   }
 
+  static forbidden(msg) {
+    return new this(msg ? msg : "Forbidden", HttpStatusCodes.FORBIDDEN);
+  }
+
   static notFound(msg) {
     return new this(msg ? msg : "Not found", HttpStatusCodes.NOT_FOUND);
   }

@@ -1,6 +1,6 @@
 # API Reference
 
-This reference documents the Express routes currently mounted by the application. Authentication labels reflect the middleware that is present in the code, including routes that are presently public.
+This reference documents the Express routes currently mounted by the application. Authentication labels reflect the middleware currently enforced by the API.
 
 ## Base URL
 
@@ -36,7 +36,7 @@ List routes return a Mongoose pagination result in `data`, including `docs`, `to
 
 ### Errors
 
-Authorization middleware returns HTTP `401` with a JSON string such as `"Access Denied"`, `"Invalid Token"`, or `"User not allowed to access this resource"`. Errors forwarded from routes and services are currently handled as HTTP `500` plain-text responses. Validate client responses by status code before assuming a JSON body.
+Authorization middleware returns HTTP `401` with a JSON string such as `"Access Denied"`, `"Invalid Token"`, or `"User not allowed to access this resource"`. Service and validation errors return a JSON `{ "message": "..." }` body with their HTTP status. Unexpected server errors return `500` with `{ "message": "Internal server error" }`. Rate-limited requests return `429` with a JSON message.
 
 ### Authentication and Roles
 
@@ -53,7 +53,7 @@ The API recognizes these role values:
 | Administrator | `Admin` |
 | Staff member  | `staff` |
 
-`/auth/refresh-token` and `/auth/sign-out` accept a refresh token in the same Bearer header format, but do not use the standard role middleware.
+Access tokens and refresh tokens are purpose-bound JWTs signed with HS256, issuer, and audience claims. Protected routes accept only access tokens. `/auth/refresh-token` and `/auth/sign-out` accept only refresh tokens in the same Bearer header format. Existing sessions from before this change require a new login.
 
 ### Upload Rules
 
@@ -65,56 +65,56 @@ An `ID` is sent as a string. The Joi schemas require a non-empty string; service
 
 ## Endpoint Summary
 
-| Method | Endpoint                                   | Auth             |
-| ------ | ------------------------------------------ | ---------------- |
-| GET    | `/health`                                  | Public           |
-| POST   | `/auth/login`                              | Public           |
-| GET    | `/auth/refresh-token`                      | Refresh token    |
-| POST   | `/auth/sign-out`                           | Refresh token    |
-| POST   | `/user/addUser`                            | Admin            |
-| GET    | `/user/displaystaff`                       | Admin            |
-| GET    | `/user/display-staff/:id`                  | Admin or staff   |
-| PUT    | `/user/profile-edit`                       | Admin or staff   |
-| PUT    | `/user/user-status-change`                 | Admin            |
-| GET    | `/user/info`                               | Admin or staff   |
-| POST   | `/category/add-category`                   | Admin            |
-| GET    | `/category/`                               | Public           |
-| GET    | `/category/:id`                            | Admin or staff   |
-| PUT    | `/category/edit-category`                  | Admin            |
-| PUT    | `/category/update-status`                  | Admin            |
-| POST   | `/product/add`                             | Admin            |
-| GET    | `/product/`                                | Admin or staff   |
-| GET    | `/product/online`                          | Public           |
-| GET    | `/product/:id`                             | Public           |
-| PUT    | `/product/add-multiple-image/:productId`   | Admin or staff   |
-| DELETE | `/product/delete-multiple-image`           | Public           |
-| PUT    | `/product/edit-details`                    | Public           |
-| PUT    | `/product/edit-variant`                    | Public           |
-| PUT    | `/product/status-change`                   | Public           |
-| GET    | `/product/related-product/:categoryId`     | Public           |
-| POST   | `/product-token/add`                       | Admin            |
-| GET    | `/product-token/`                          | Public           |
-| PUT    | `/product-token/edit`                      | Admin            |
-| PUT    | `/product-token/edit-status`               | Admin            |
-| POST   | `/city/add`                                | Admin            |
-| GET    | `/city/`                                   | Admin or staff   |
-| GET    | `/city/web`                                | Public           |
-| GET    | `/city/:id`                                | Public           |
-| PUT    | `/city/edit`                               | Admin            |
-| PUT    | `/city/edit-status`                        | Admin            |
-| POST   | `/order/add-order`                         | Public           |
-| GET    | `/order/`                                  | Admin or staff   |
-| GET    | `/order/:orderId`                          | Public           |
-| GET    | `/order/admin/:orderId`                    | Admin or staff   |
-| GET    | `/order/cancel/:orderId`                   | Admin or staff   |
-| GET    | `/order/complete/:orderId`                 | Admin or staff   |
-| GET    | `/dashboard/admin/order-status-count`      | Admin            |
-| GET    | `/dashboard/admin/income-summary`          | Admin            |
-| GET    | `/dashboard/admin/order-performance-chart` | Admin            |
-| GET    | `/dashboard/admin/product-sale`            | Admin            |
-| GET    | `/online-payment/config`                   | Public           |
-| POST   | `/online-payment/webhook`                  | Stripe signature |
-| GET    | `/mail/`                                   | Public           |
+| Method | Endpoint                                   | Auth                  |
+| ------ | ------------------------------------------ | --------------------- |
+| GET    | `/health`                                  | Public                |
+| POST   | `/auth/login`                              | Public                |
+| GET    | `/auth/refresh-token`                      | Refresh token         |
+| POST   | `/auth/sign-out`                           | Refresh token         |
+| POST   | `/user/addUser`                            | Admin                 |
+| GET    | `/user/displaystaff`                       | Admin                 |
+| GET    | `/user/display-staff/:id`                  | Admin or staff        |
+| PUT    | `/user/profile-edit`                       | Admin or staff        |
+| PUT    | `/user/user-status-change`                 | Admin                 |
+| GET    | `/user/info`                               | Admin or staff        |
+| POST   | `/category/add-category`                   | Admin                 |
+| GET    | `/category/`                               | Public                |
+| GET    | `/category/:id`                            | Admin or staff        |
+| PUT    | `/category/edit-category`                  | Admin                 |
+| PUT    | `/category/update-status`                  | Admin                 |
+| POST   | `/product/add`                             | Admin                 |
+| GET    | `/product/`                                | Admin or staff        |
+| GET    | `/product/online`                          | Public                |
+| GET    | `/product/:id`                             | Public                |
+| PUT    | `/product/add-multiple-image/:productId`   | Admin or staff        |
+| DELETE | `/product/delete-multiple-image`           | Admin or staff        |
+| PUT    | `/product/edit-details`                    | Admin or staff        |
+| PUT    | `/product/edit-variant`                    | Admin or staff        |
+| PUT    | `/product/status-change`                   | Admin                 |
+| GET    | `/product/related-product/:categoryId`     | Public                |
+| POST   | `/product-token/add`                       | Admin                 |
+| GET    | `/product-token/`                          | Public                |
+| PUT    | `/product-token/edit`                      | Admin                 |
+| PUT    | `/product-token/edit-status`               | Admin                 |
+| POST   | `/city/add`                                | Admin                 |
+| GET    | `/city/`                                   | Admin or staff        |
+| GET    | `/city/web`                                | Public                |
+| GET    | `/city/:id`                                | Public                |
+| PUT    | `/city/edit`                               | Admin                 |
+| PUT    | `/city/edit-status`                        | Admin                 |
+| POST   | `/order/add-order`                         | Public                |
+| GET    | `/order/`                                  | Admin or staff        |
+| GET    | `/order/:orderId`                          | Customer access token |
+| GET    | `/order/admin/:orderId`                    | Admin or staff        |
+| PUT    | `/order/cancel/:orderId`                   | Admin or staff        |
+| PUT    | `/order/complete/:orderId`                 | Admin or staff        |
+| GET    | `/dashboard/admin/order-status-count`      | Admin                 |
+| GET    | `/dashboard/admin/income-summary`          | Admin                 |
+| GET    | `/dashboard/admin/order-performance-chart` | Admin                 |
+| GET    | `/dashboard/admin/product-sale`            | Admin                 |
+| GET    | `/online-payment/config`                   | Public                |
+| POST   | `/online-payment/webhook`                  | Stripe signature      |
+| GET    | `/mail/`                                   | Admin                 |
 
 ## Health
 
@@ -139,7 +139,7 @@ An `ID` is sent as a string. The Joi schemas require a non-empty string; service
 | `email`    | string | Required; valid email address.   |
 | `password` | string | Required; maximum 40 characters. |
 
-**Success response:** `200`; `data` contains the authenticated user session, including `accessToken`, `refreshToken`, user ID, user name, role, and status.
+**Success response:** `200`; `data` contains the authenticated user session, including purpose-bound `accessToken`, `refreshToken`, user ID, user name, role, and status.
 
 ### GET `/auth/refresh-token`
 
@@ -353,7 +353,7 @@ An `ID` is sent as a string. The Joi schemas require a non-empty string; service
 
 ### DELETE `/product/delete-multiple-image`
 
-**Authentication:** Public in the current router implementation.
+**Authentication:** Admin or staff.
 
 **Query parameters:** Required `productId` and `imageId` strings.
 
@@ -361,7 +361,7 @@ An `ID` is sent as a string. The Joi schemas require a non-empty string; service
 
 ### PUT `/product/edit-details`
 
-**Authentication:** Public in the current router implementation.
+**Authentication:** Admin or staff.
 
 **Payload:** `multipart/form-data`.
 
@@ -378,7 +378,7 @@ An `ID` is sent as a string. The Joi schemas require a non-empty string; service
 
 ### PUT `/product/edit-variant`
 
-**Authentication:** Public in the current router implementation.
+**Authentication:** Admin.
 
 **Payload:** JSON.
 
@@ -548,7 +548,9 @@ An `ID` is sent as a string. The Joi schemas require a non-empty string; service
 | `product[].productId` | string | Required product ID.                           |
 | `product[].qty`       | number | Required; minimum 1.                           |
 
-**Success response:** `200`; `data` is the created order. Online payments produce a pending order and payment client secret; cash orders start in processing status. The service calculates totals, reduces stock, and stores product pricing details.
+**Rate limit:** 10 checkout attempts per IP every 15 minutes.
+
+**Success response:** `200`; `data` contains a customer-safe order, a cryptographically random `orderAccessToken`, and, for online payments only, `clientSecret`. The client secret is returned only in this direct checkout response and is not stored with the order. Cash orders start in processing status; online orders start pending. The service calculates totals from server-side product and delivery data.
 
 ### GET `/order/`
 
@@ -560,11 +562,15 @@ An `ID` is sent as a string. The Joi schemas require a non-empty string; service
 
 ### GET `/order/:orderId`
 
-**Authentication:** Public.
+**Authentication:** Customer access token.
 
 **Path parameters:** `orderId` is the generated order reference, such as `Inv-...`, not the MongoDB `_id`.
 
-**Success response:** `200`; `data` is the requested customer order. Internal cost and profit data are excluded by the service.
+**Headers:** Required `X-Order-Access-Token: <orderAccessToken>` returned by `POST /order/add-order`.
+
+**Rate limit:** 60 lookup attempts per IP every 15 minutes.
+
+**Success response:** `200`; `data` is the requested customer order. Payment information, internal profit, product cost, and the stored token hash are excluded. Orders created before customer access tokens were introduced must be retrieved through an authenticated staff/admin endpoint.
 
 ### GET `/order/admin/:orderId`
 
@@ -574,7 +580,7 @@ An `ID` is sent as a string. The Joi schemas require a non-empty string; service
 
 **Success response:** `200`; `data` is the requested administrative order view, including internal order details.
 
-### GET `/order/cancel/:orderId`
+### PUT `/order/cancel/:orderId`
 
 **Authentication:** Admin or staff.
 
@@ -582,7 +588,7 @@ An `ID` is sent as a string. The Joi schemas require a non-empty string; service
 
 **Success response:** `200`; `data` is the update result and the order status becomes `Reject`.
 
-### GET `/order/complete/:orderId`
+### PUT `/order/complete/:orderId`
 
 **Authentication:** Admin or staff.
 
@@ -633,13 +639,13 @@ All dashboard endpoints require Admin authentication and these query parameters:
 
 **Payload:** Raw `application/json` Stripe event body. Do not transform or JSON-encode the body again; signature verification requires the original raw bytes.
 
-**Success response:** `200`; `data` contains the webhook service result. A successful payment intent updates the related order's status to `Processing`.
+**Success response:** `200`; `data` contains the webhook service result. The API verifies the Stripe signature against the unmodified raw body, checks the configured live/test mode, matches the PaymentIntent ID, amount, and currency to a pending online order, and records the Stripe event ID to make repeat deliveries idempotent. A successful payment intent updates the related order's status to `Processing`.
 
 ## Mail
 
 ### GET `/mail/`
 
-**Authentication:** Public.
+**Authentication:** Admin.
 
 **Parameters and payload:** None.
 
@@ -647,6 +653,9 @@ All dashboard endpoints require Admin authentication and these query parameters:
 
 ## Security Notes
 
-- `DELETE /product/delete-multiple-image`, `PUT /product/edit-details`, `PUT /product/edit-variant`, and `PUT /product/status-change` are public in the current router implementation. Clients should not assume these mutations require an access token.
-- The cancel and complete order operations mutate state but are implemented as `GET` requests. Avoid browser or proxy prefetching for those URLs.
-- Never put JWT secrets, database credentials, Stripe secret keys, SMTP passwords, or production environment files in source control.
+- Product mutations require a valid access token. Image deletion, product details, and variant edits permit Admin or staff; product status changes require Admin.
+- Customer order data requires the high-entropy `X-Order-Access-Token` returned only at checkout. Keep it out of URLs, logs, and analytics.
+- Stripe client secrets and raw webhook events are not persisted. Run `CONFIRM_PAYMENT_DATA_REDACTION=true npm run security:redact-payment-data` once per affected environment to remove legacy data.
+- Browser requests are restricted to `WEB_BASE_URL`; production deployments must use HTTPS and configure `STRIPE_LIVE_MODE=true` for live Stripe events.
+- Cancel and complete order operations use `PUT`; clients must update from the former `GET` endpoints.
+- Never put JWT secrets, database credentials, Cloudinary credentials, Stripe secret keys, SMTP passwords, or production environment files in source control. Rotate the credentials that were previously stored in source code.

@@ -1,11 +1,9 @@
 import express from "express";
 import cors from "cors";
-import statusCodes from "http-status-codes";
+import helmet from "helmet";
 import dotenv from "dotenv";
 import * as Sentry from "@sentry/node";
 
-import Database from "./shared/database.js";
-import apiRouter from "./routers/api.router.js";
 import HttpError from "./shared/htttp.error.js";
 import { logger } from "./middleware/logEvents.js";
 import { errorHandler } from "./middleware/errorHandler.js";
@@ -16,57 +14,55 @@ dotenv.config({
 });
 console.log("Running environment : " + env);
 
+const { default: Database } = await import("./shared/database.js");
+const { default: apiRouter } = await import("./routers/api.router.js");
+
 const app = express();
-const { BAD_REQUEST } = statusCodes;
+const allowedOrigins = new Set(
+  (process.env.WEB_BASE_URL || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+);
+const sentryDsn = process.env.SENTRY_DSN;
+const sentryTracesSampleRate = Number(process.env.SENTRY_TRACES_SAMPLE_RATE || 0);
+const sentryEnabled = Boolean(sentryDsn);
 
-Sentry.init({
-  dsn: "https://c0cf40a79ed24bb7b21ff10e4290eda8@o4505175094525952.ingest.sentry.io/4505175097409536",
-  integrations: [
-    // enable HTTP calls tracing
-    new Sentry.Integrations.Http({ tracing: true }),
-    // enable Express.js middleware tracing
-    // new Tracing.Integrations.Express({ app }),
-    // Automatically instrument Node.js libraries and frameworks
-    ...Sentry.autoDiscoverNodePerformanceMonitoringIntegrations(),
-  ],
-  // Set tracesSampleRate to 1.0 to capture 100%
-  // of transactions for performance monitoring.
-  // We recommend adjusting this value in production
-  tracesSampleRate: 1.0,
-});
-// RequestHandler creates a separate execution context, so that all
-// transactions/spans/breadcrumbs are isolated across requests
-app.use(Sentry.Handlers.requestHandler());
-// TracingHandler creates a trace for every incoming request
-app.use(Sentry.Handlers.tracingHandler());
+if (sentryEnabled) {
+  Sentry.init({
+    dsn: sentryDsn,
+    integrations: [
+      new Sentry.Integrations.Http({ tracing: true }),
+      ...Sentry.autoDiscoverNodePerformanceMonitoringIntegrations(),
+    ],
+    tracesSampleRate: Number.isFinite(sentryTracesSampleRate) ? sentryTracesSampleRate : 0,
+  });
+  app.use(Sentry.Handlers.requestHandler());
+  app.use(Sentry.Handlers.tracingHandler());
+}
 
-// Add Routes
-// app.use(express.json());
-app.use((req, res, next) => {
-  if (req.originalUrl === "/api/online-payment/webhook") {
-    next(); // Do nothing with the body because I need it in a raw state.
-  } else {
-    express.json()(req, res, next); // ONLY do express.json() if the received request is NOT a WebHook from Stripe.
-  }
-});
-
+app.use(
+  helmet({
+    strictTransportSecurity: env === "production" ? undefined : false,
+  })
+);
+app.use("/api/online-payment/webhook", express.raw({ type: "application/json" }));
+app.use(express.json());
 app.use(logger);
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+      return callback(HttpError.forbidden("Origin not allowed"));
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Authorization", "Content-Type", "X-Order-Access-Token"],
+  })
+);
 app.use("/api", apiRouter);
+if (sentryEnabled) app.use(Sentry.Handlers.errorHandler());
 app.use(errorHandler);
-app.use(Sentry.Handlers.errorHandler());
-
-app.use(function (err, req, res, next) {
-  let status = BAD_REQUEST;
-  if (err instanceof HttpError) {
-    status = err.httpStatusCode;
-  }
-  res.status(res.sentry + "\n");
-  return res.status(status).json({
-    message: err.message,
-  });
-});
 
 Database();
 const port = process.env.PORT || 5000;

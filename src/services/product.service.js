@@ -12,8 +12,7 @@ import {
 
 import { StockStatus, productStatus, categoryStatus } from "../shared/constants.js";
 import HttpError from "../shared/htttp.error.js";
-import cloudinary from "cloudinary";
-import { cloudinaryConfig } from "../shared/cloudinary.config.js";
+import { getCloudinary } from "../shared/cloudinary.config.js";
 import { getCloudinaryProductId } from "../shared/cloudinary.productId.js";
 
 ////////////////////////////////////////  Display Product Admin //////////////////////////
@@ -159,7 +158,8 @@ export const addProductService = async (uploadImage, body) => {
   const { error } = addProductValidation(data);
   if (error) throw HttpError.badRequest(error.details[0].message);
 
-  const uploadImageUrl = await cloudinary.v2.uploader.upload(uploadImage);
+  const cloudinary = getCloudinary();
+  const uploadImageUrl = await cloudinary.uploader.upload(uploadImage);
   if (!uploadImageUrl) throw HttpError.badRequest("define image url");
 
   const sortVariantArray = data.variant.sort((a, b) => a.price - b.price);
@@ -204,11 +204,12 @@ export const addMultipleImageService = async (uploadImage, productId) => {
   if (currentImageCount < uploadImage.length)
     throw HttpError.badRequest(`Sorry, You can add Maximum ${currentImageCount} Images`);
 
+  const cloudinary = getCloudinary();
   var newVariant = [];
 
   newVariant = await Promise.all(
     uploadImage.map(async (data) => {
-      const uploadImageUrl = await cloudinary.v2.uploader.upload(data.path);
+      const uploadImageUrl = await cloudinary.uploader.upload(data.path);
       if (!uploadImageUrl) throw HttpError.badRequest("define image url");
 
       let imageObject = {
@@ -246,8 +247,9 @@ export const deleteMultipleImage = async (request) => {
 
   const { url } = filterImageObject.pop();
 
+  const cloudinary = getCloudinary();
   const cloudinaryImageId = await getCloudinaryProductId(url);
-  await cloudinary.v2.uploader.destroy(cloudinaryImageId);
+  await cloudinary.uploader.destroy(cloudinaryImageId);
 
   await ProductModel.updateMany({ _id: productId }, { $pull: { imageSet: { _id: imageId } } });
 
@@ -281,9 +283,10 @@ export const editProductDetailsService = async (data, uploadImage) => {
   const previousImageUrl = Product.primaryImage;
 
   if (uploadImage) {
+    const cloudinary = getCloudinary();
     const getProductId = await getCloudinaryProductId(previousImageUrl);
-    await cloudinary.v2.uploader.destroy(getProductId);
-    const uploadImageUrl = await cloudinary.v2.uploader.upload(uploadImage);
+    await cloudinary.uploader.destroy(getProductId);
+    const uploadImageUrl = await cloudinary.uploader.upload(uploadImage);
     imageUrl = uploadImageUrl.secure_url;
   } else {
     imageUrl = data.image;

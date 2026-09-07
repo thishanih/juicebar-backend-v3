@@ -16,7 +16,7 @@ An Express and MongoDB backend for a juice bar e-commerce application. It provid
 
 ### Prerequisites
 
-- Node.js 18 or later
+- Node.js 20 or later
 - npm
 - A MongoDB database
 - Cloudinary credentials configured by the application
@@ -49,6 +49,9 @@ Environment files are intentionally ignored by Git. Create `env/development.env`
 # env/development.env
 PORT=5001
 TOKEN_SECRET=replace-with-a-long-random-secret
+REFRESH_TOKEN_SECRET=replace-with-a-different-long-random-secret
+JWT_ISSUER=juice-bar-api
+JWT_AUDIENCE=juice-bar-client
 DB=mongodb+srv://USERNAME:PASSWORD@HOST/DATABASE?retryWrites=true&w=majority
 
 BASE_URL=http://localhost:5001
@@ -60,15 +63,25 @@ TZ=Asia/Colombo
 MAX_IMAGE_SET_COUNT=5
 STATIC_DIR=../client
 
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=replace_me
+CLOUDINARY_API_SECRET=replace_me
+
 STRIPE_PUBLISHABLE_KEY=pk_test_replace_me
 STRIPE_SECRET_KEY=sk_test_replace_me
 STRIPE_WEBHOOK_SECRET_KEY=whsec_replace_me
+STRIPE_LIVE_MODE=false
+
+SENTRY_DSN=https://public-key@organization.ingest.sentry.io/project-id
+SENTRY_TRACES_SAMPLE_RATE=0.1
 
 SENDGRID_API_KEY=SG.replace_me
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=465
 SMTP_USERNAME=your-email@example.com
 SMTP_PASSWORD=your-email-app-password
+SMTP_FROM=your-email@example.com
+SMTP_TO=your-email@example.com
 ```
 
 `NODE_ENV` selects the file at `env/<NODE_ENV>.env`. Because the application chooses that file before loading it, set `NODE_ENV` in the shell or process environment when using anything other than the default `development` environment.
@@ -79,6 +92,7 @@ SMTP_PASSWORD=your-email-app-password
 .
 ├── env/                         # Local environment files (ignored by Git)
 ├── postman/                     # Postman collection assets
+├── scripts/                      # Explicitly invoked maintenance scripts
 ├── src/
 │   ├── index.js                 # Express app entry point
 │   ├── logs/                    # Runtime request and error logs (ignored by Git)
@@ -94,6 +108,7 @@ SMTP_PASSWORD=your-email-app-password
 ├── .gitignore
 ├── .prettierrc.json
 ├── package.json
+├── test/                         # Node test suite
 └── README.md
 ```
 
@@ -103,8 +118,10 @@ The complete endpoint reference, including authentication, validation, parameter
 
 ## Available Scripts
 
-| Command                | Description                                |
-| ---------------------- | ------------------------------------------ |
-| `npm run dev`          | Start the API with nodemon.                |
-| `npm run format`       | Format repository files with Prettier.     |
-| `npm run format:check` | Check repository formatting with Prettier. |
+| Command                                | Description                                                                |
+| -------------------------------------- | -------------------------------------------------------------------------- |
+| `npm run dev`                          | Start the API with nodemon.                                                |
+| `npm test`                             | Run the focused security test suite.                                       |
+| `npm run security:redact-payment-data` | Remove legacy client secrets and Stripe event payloads after confirmation. |
+| `npm run format`                       | Format repository files with Prettier.                                     |
+| `npm run format:check`                 | Check repository formatting with Prettier.                                 |

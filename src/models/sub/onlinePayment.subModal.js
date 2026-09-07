@@ -5,11 +5,11 @@ const paymentSchema = mongoose.Schema(
     paymentId: {
       type: String,
     },
-    clientSecret: {
+    eventId: {
       type: String,
     },
-    logFile: {
-      type: Object,
+    paidAt: {
+      type: Date,
     },
   },
   {

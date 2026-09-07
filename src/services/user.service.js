@@ -1,5 +1,4 @@
 import { userModel } from "../models/user.model.js";
-import cloudinary from "cloudinary";
 import {
   registrationUserValidation,
   profileEditValidation,
@@ -9,7 +8,7 @@ import HttpError from "../shared/htttp.error.js";
 import { generatePassword } from "../shared/generatePassword.js";
 import { userType, userStatus } from "../shared/constants.js";
 import bencrypt from "bcryptjs";
-import { cloudinaryConfig } from "../shared/cloudinary.config.js";
+import { getCloudinary } from "../shared/cloudinary.config.js";
 import { getCloudinaryProductId } from "../shared/cloudinary.productId.js";
 
 //////////////////////////////////////// Staff Register //////////////////////////
@@ -26,7 +25,8 @@ export const userRegister = async (uploadImage, data) => {
   const salt = await bencrypt.genSalt(10);
   const hashPassword = await bencrypt.hash(randomPassword, salt);
 
-  const uploadImageUrl = await cloudinary.v2.uploader.upload(uploadImage);
+  const cloudinary = getCloudinary();
+  const uploadImageUrl = await cloudinary.uploader.upload(uploadImage);
   if (!uploadImageUrl) throw HttpError.badRequest("define image url");
 
   const user = new userModel({
@@ -115,9 +115,10 @@ export const profileEdit = async (data, uploadImage) => {
   let imageUrl;
 
   if (uploadImage) {
+    const cloudinary = getCloudinary();
     const getProductId = await getCloudinaryProductId(previousImageUrl);
-    await cloudinary.v2.uploader.destroy(getProductId);
-    const uploadImageUrl = await cloudinary.v2.uploader.upload(uploadImage);
+    await cloudinary.uploader.destroy(getProductId);
+    const uploadImageUrl = await cloudinary.uploader.upload(uploadImage);
     imageUrl = uploadImageUrl.secure_url;
   } else {
     imageUrl = data.image;

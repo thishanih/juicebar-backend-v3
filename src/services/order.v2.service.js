@@ -6,6 +6,11 @@ import { addOrderValidation } from "../shared/validation.js";
 import { PaymentType, cityStatus, orderStatus, StockStatus } from "../shared/constants.js";
 import HttpError from "../shared/htttp.error.js";
 import { createPaymentIntentService } from "../services/payment.service.js";
+import {
+  createOrderAccessToken,
+  customerOrderResponse,
+  hashOrderAccessToken,
+} from "../shared/orderAccess.js";
 
 //////////////////////////////////////// Add Order  //////////////////////////
 export const addOrderService = async (data) => {
@@ -81,6 +86,8 @@ export const addOrderService = async (data) => {
     address2: data.address2,
     cityId: data.cityId,
   };
+  const orderAccessToken = createOrderAccessToken();
+  const customerAccessTokenHash = hashOrderAccessToken(orderAccessToken);
 
   // reduce stock product variant
   await Promise.all(
@@ -101,6 +108,7 @@ export const addOrderService = async (data) => {
 
   if (PaymentType.cashOnDelivery === data.paymentMethod) {
     const saveOrder = new orderModel({
+      customerAccessTokenHash: customerAccessTokenHash,
       orderStatus: orderStatus.processing,
       contactInfo: contactInfo,
       product: saveOrderItems,
@@ -112,9 +120,10 @@ export const addOrderService = async (data) => {
       profit: orderDetails.profit,
     });
     const savedOrder = await saveOrder.save();
-    return savedOrder;
+    return customerOrderResponse(savedOrder, orderAccessToken);
   } else if (PaymentType.online === data.paymentMethod) {
     const initOrder = new orderModel({
+      customerAccessTokenHash: customerAccessTokenHash,
       orderStatus: orderStatus.pending,
       contactInfo: contactInfo,
       product: saveOrderItems,
@@ -127,55 +136,57 @@ export const addOrderService = async (data) => {
     });
 
     const savedOrder = await initOrder.save();
-    const clientSecret = await createPaymentIntentService(savedOrder.orderId, savedOrder.total);
+    const paymentIntent = await createPaymentIntentService(savedOrder.orderId, savedOrder.total);
 
-    const updatedCity = await orderModel.updateOne(
-      { orderId: savedOrder.orderId },
+    await orderModel.updateOne(
+      { _id: savedOrder._id },
       {
-        $set: { "paymentInfo.clientSecret": clientSecret },
+        $set: { "paymentInfo.paymentId": paymentIntent.paymentId },
       }
     );
 
-    return savedOrder;
+    return customerOrderResponse(savedOrder, orderAccessToken, paymentIntent.clientSecret);
   }
 };
 
 //////////////////////////////////////// Get Order ID Admin And Staff  ///////////////////////////////////////////////
 export const OrderByIdServiceAdmin = async (id) => {
-  const order = await orderModel.findOne({ orderId: id }).populate([
-    {
-      path: "contactInfo",
-      populate: {
-        path: "cityId",
-        select: {
-          cityName: 1,
-          deliverCharges: 1,
+  const order = await orderModel
+    .findOne({ orderId: id }, { "paymentInfo.clientSecret": 0, "paymentInfo.logFile": 0 })
+    .populate([
+      {
+        path: "contactInfo",
+        populate: {
+          path: "cityId",
+          select: {
+            cityName: 1,
+            deliverCharges: 1,
+          },
         },
       },
-    },
-    {
-      path: "product",
-      populate: [
-        {
-          path: "variantId",
-        },
-        {
-          path: "productId",
-          select: {
-            productName: 1,
-            primaryImage: 1,
-            category: 1,
-            productCode: 1,
-            createdAt: 1,
+      {
+        path: "product",
+        populate: [
+          {
+            path: "variantId",
           },
-          populate: {
-            path: "category",
-            select: { categoryName: 1 },
+          {
+            path: "productId",
+            select: {
+              productName: 1,
+              primaryImage: 1,
+              category: 1,
+              productCode: 1,
+              createdAt: 1,
+            },
+            populate: {
+              path: "category",
+              select: { categoryName: 1 },
+            },
           },
-        },
-      ],
-    },
-  ]);
+        ],
+      },
+    ]);
 
   return order;
 };
@@ -197,6 +208,7 @@ export const displayAllOrderService = async (request) => {
     page: page,
     lean: true,
     limit: per_page,
+    select: "-paymentInfo.clientSecret -paymentInfo.logFile",
 
     populate: [
       {
@@ -243,15 +255,19 @@ export const displayAllOrderService = async (request) => {
 };
 
 //////////////////////////////////////// Get Order ID  ///////////////////////////////////////////////
-export const OrderByIdService = async (id) => {
+export const OrderByIdService = async (id, orderAccessToken) => {
+  if (!orderAccessToken || typeof orderAccessToken !== "string")
+    throw HttpError.unauthorized("Order access token required");
+
+  const customerAccessTokenHash = hashOrderAccessToken(orderAccessToken);
   const order = await orderModel
     .findOne(
-      { orderId: id },
+      { orderId: id, customerAccessTokenHash: customerAccessTokenHash },
       {
         profit: 0,
-        product: {
-          cost: 0,
-        },
+        paymentInfo: 0,
+        customerAccessTokenHash: 0,
+        "product.cost": 0,
       }
     )
     .populate([

@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import mongoosePaginate from "mongoose-paginate-v2";
+import { randomUUID } from "crypto";
 import { PaymentType, orderStatus } from "../shared/constants.js";
 import { contactModal } from "./sub/contact.subModal.js";
 import { orderProductModal } from "./sub/orderProduct.subModel.js";
@@ -11,8 +12,15 @@ let orderSchema = mongoose.Schema(
       type: String,
       unique: true,
       default: function () {
-        return "Inv-" + new Date().getTime();
+        return "Inv-" + randomUUID();
       },
+    },
+    customerAccessTokenHash: {
+      type: String,
+      required: true,
+      unique: true,
+      sparse: true,
+      select: false,
     },
     orderStatus: {
       type: String,
@@ -63,5 +71,7 @@ let orderSchema = mongoose.Schema(
   }
 );
 
+orderSchema.index({ "paymentInfo.paymentId": 1 }, { unique: true, sparse: true });
+orderSchema.index({ "paymentInfo.eventId": 1 }, { unique: true, sparse: true });
 orderSchema.plugin(mongoosePaginate);
 export const orderModel = mongoose.model("Order", orderSchema);

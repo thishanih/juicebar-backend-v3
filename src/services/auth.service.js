@@ -4,7 +4,13 @@ import { loginValidation } from "../shared/validation.js";
 import HttpError from "../shared/htttp.error.js";
 import { userStatus } from "../shared/constants.js";
 import bencrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import {
+  createAccessToken,
+  createRefreshToken,
+  hashRefreshToken,
+  verifyAccessToken,
+  verifyRefreshToken,
+} from "../shared/authTokens.js";
 
 export const login = async (data) => {
   const { error } = loginValidation(data);
@@ -25,13 +31,8 @@ export const login = async (data) => {
     displayName: userExists.firstName + " " + userExists.lastName,
   };
 
-  const newAccessToken = jwt.sign(tokenInfo, process.env.TOKEN_SECRET, {
-    expiresIn: process.env.SET_TOKEN,
-  });
-
-  const newRefreshToken = jwt.sign(tokenInfo, process.env.TOKEN_SECRET, {
-    expiresIn: process.env.RESET_TOKEN,
-  });
+  const newAccessToken = createAccessToken(tokenInfo);
+  const newRefreshToken = createRefreshToken(tokenInfo);
 
   const authorization = {
     userid: userExists.id,
@@ -45,7 +46,7 @@ export const login = async (data) => {
   // save refresh data save
   const refreshData = new RefreshTokenModel({
     userId: userExists.id,
-    token: newRefreshToken,
+    token: hashRefreshToken(newRefreshToken),
   });
 
   await refreshData.save();
@@ -64,36 +65,36 @@ export const refreshToken = async (refreshTokenKey) => {
   const bearerToken = refreshTokenKey.split(" ")[1];
   if (!bearerToken) throw HttpError.badRequest("Token missing");
 
-  const isToken = await RefreshTokenModel.findOne({ token: bearerToken });
+  const refreshTokenHash = hashRefreshToken(bearerToken);
+  const isToken = await RefreshTokenModel.findOne({ token: refreshTokenHash });
   if (!isToken) throw HttpError.badRequest("Refresh token services are no longer valid");
 
-  await RefreshTokenModel.deleteOne({ token: bearerToken });
+  await RefreshTokenModel.deleteOne({ token: refreshTokenHash });
 
-  // Verify the bearerToken instead of refreshToken to decode
-  const RefreshTokenDecoded = jwt.verify(bearerToken, process.env.TOKEN_SECRET);
-  if (!RefreshTokenDecoded) throw HttpError.badRequest("Refresh token services are not verified");
+  let refreshTokenDecoded;
+  try {
+    refreshTokenDecoded = verifyRefreshToken(bearerToken);
+  } catch (err) {
+    throw HttpError.badRequest("Refresh token services are not verified");
+  }
 
-  const userExists = await userModel.findById(RefreshTokenDecoded._id);
+  const userExists = await userModel.findById(refreshTokenDecoded._id);
+  if (!userExists) throw HttpError.badRequest("Invalid user details");
   if (userExists.userStatus === userStatus.inactive)
     throw HttpError.badRequest(`currently userStatus ${userExists.userStatus}`);
 
   const tokenInfo = {
-    _id: RefreshTokenDecoded._id,
-    role: RefreshTokenDecoded.role,
-    displayName: RefreshTokenDecoded.displayName,
+    _id: refreshTokenDecoded._id,
+    role: refreshTokenDecoded.role,
+    displayName: refreshTokenDecoded.displayName,
   };
 
-  const newAccessToken = jwt.sign(tokenInfo, process.env.TOKEN_SECRET, {
-    expiresIn: process.env.SET_TOKEN,
-  });
-
-  const newRefreshToken = jwt.sign(tokenInfo, process.env.TOKEN_SECRET, {
-    expiresIn: process.env.RESET_TOKEN,
-  });
+  const newAccessToken = createAccessToken(tokenInfo);
+  const newRefreshToken = createRefreshToken(tokenInfo);
 
   const refreshData = new RefreshTokenModel({
     userId: userExists._id,
-    token: newRefreshToken,
+    token: hashRefreshToken(newRefreshToken),
   });
 
   await refreshData.save();
@@ -116,7 +117,7 @@ export const signOut = async (refreshTokenKey) => {
   if (!bearerToken) throw HttpError.badRequest("Token missing");
 
   const deletedToken = await RefreshTokenModel.deleteOne({
-    token: bearerToken,
+    token: hashRefreshToken(bearerToken),
   });
   if (deletedToken.deletedCount === 0) {
     throw HttpError.badRequest("Refresh token services are no longer valid");
@@ -133,9 +134,17 @@ export const signOut = async (refreshTokenKey) => {
  * @throws {HttpError} - If the user does not exist or the token is invalid.
  */
 export const userInfo = async (bearerHeader) => {
+  if (!bearerHeader || !bearerHeader.startsWith("Bearer "))
+    throw HttpError.unauthorized("Invalid token format");
+
   const bearer = bearerHeader.split(" ");
   const bearerToken = bearer[1];
-  const verified = jwt.verify(bearerToken, process.env.TOKEN_SECRET);
+  let verified;
+  try {
+    verified = verifyAccessToken(bearerToken);
+  } catch (err) {
+    throw HttpError.unauthorized("Invalid Token");
+  }
 
   const userExists = await userModel.findById({ _id: verified._id }, { password: 0 });
   if (!userExists) throw HttpError.badRequest("Invalid users details");

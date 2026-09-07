@@ -1,12 +1,12 @@
 import moment from "moment";
-import { v4 as uuid } from "uuid";
+import { randomUUID } from "crypto";
 import { promises as fsPromises, existsSync, mkdirSync, appendFile } from "fs";
 import { fileURLToPath } from "url";
 import path from "path";
 
 export const logEvents = async (message, logName) => {
   const dateTime = moment(new Date()).format("MMMM Do YYYY, h:mm:ss a");
-  const logItem = `${dateTime}\t${uuid()}\t${message}\n`;
+  const logItem = `${dateTime}\t${randomUUID()}\t${message}\n`;
   const dirname = path.dirname(fileURLToPath(import.meta.url));
   try {
     if (!existsSync(path.join(dirname, "..", "logs"))) {

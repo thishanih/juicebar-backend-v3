@@ -1,6 +1,7 @@
 import express from "express";
 import { userType } from "../shared/constants.js";
 import { userAuthorization } from "../middleware/authorization.js";
+import { checkoutRateLimit, orderLookupRateLimit } from "../middleware/rateLimit.js";
 
 import {
   addOrderService,
@@ -14,7 +15,7 @@ import {
 const orderRouter = express.Router();
 
 //////////////////  Add new Order /////////////
-orderRouter.post("/add-order", async (req, res, next) => {
+orderRouter.post("/add-order", checkoutRateLimit, async (req, res, next) => {
   try {
     const result = await addOrderService(req.body);
     res.status(200).json({
@@ -44,9 +45,9 @@ orderRouter.get(
 );
 
 //////////////////  Display Order Id /////////////
-orderRouter.get("/:orderId", async (req, res, next) => {
+orderRouter.get("/:orderId", orderLookupRateLimit, async (req, res, next) => {
   try {
-    const result = await OrderByIdService(req.params.orderId);
+    const result = await OrderByIdService(req.params.orderId, req.headers["x-order-access-token"]);
     res.status(200).json({
       message: "Display Order Id Successfully",
       data: result,
@@ -74,7 +75,7 @@ orderRouter.get(
 );
 
 //////////////////   Order Cancel /////////////
-orderRouter.get(
+orderRouter.put(
   "/cancel/:orderId",
   userAuthorization([userType.admin, userType.staff]),
   async (req, res, next) => {
@@ -91,7 +92,7 @@ orderRouter.get(
 );
 
 //////////////////   Order Complete /////////////
-orderRouter.get(
+orderRouter.put(
   "/complete/:orderId",
   userAuthorization([userType.admin, userType.staff]),
   async (req, res, next) => {

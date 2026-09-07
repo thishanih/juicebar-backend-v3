@@ -97,48 +97,61 @@ productRouter.put(
   }
 );
 
-//////////////////   Multiple Image Delete /////////////
-productRouter.delete("/delete-multiple-image", async (req, res, next) => {
-  try {
-    const result = await deleteMultipleImage(req.query);
-    res.status(200).json({
-      message: "Successfully Delete Multiple Image",
-      data: result,
-    });
-  } catch (err) {
-    next(err);
+// //////////////////   Multiple Image Delete /////////////
+productRouter.delete(
+  "/delete-multiple-image",
+  userAuthorization([userType.admin, userType.staff]),
+  async (req, res, next) => {
+    try {
+      const result = await deleteMultipleImage(req.query);
+      res.status(200).json({
+        message: "Successfully Delete Multiple Image",
+        data: result,
+      });
+    } catch (err) {
+      next(err);
+    }
   }
-});
+);
 
 //////////////////  Edit Product Details /////////////
-productRouter.put("/edit-details", uploader.single("image"), async (req, res, next) => {
-  try {
-    const filePath = typeof req.file !== "undefined" ? req.file.path : null;
-    const result = await editProductDetailsService(req.body, filePath);
-    res.status(200).json({
-      message: "Successfully Edit Product Details",
-      data: result,
-    });
-  } catch (err) {
-    next(err);
+productRouter.put(
+  "/edit-details",
+  userAuthorization([userType.admin, userType.staff]),
+  uploader.single("image"),
+  async (req, res, next) => {
+    try {
+      const filePath = typeof req.file !== "undefined" ? req.file.path : null;
+      const result = await editProductDetailsService(req.body, filePath);
+      res.status(200).json({
+        message: "Successfully Edit Product Details",
+        data: result,
+      });
+    } catch (err) {
+      next(err);
+    }
   }
-});
+);
 
 //////////////////  Edit Product Variant /////////////
-productRouter.put("/edit-variant", async (req, res, next) => {
-  try {
-    const result = await editProductVariantService(req.body);
-    res.status(200).json({
-      message: "Successfully Edit Product Variant",
-      data: result,
-    });
-  } catch (err) {
-    next(err);
+productRouter.put(
+  "/edit-variant",
+  userAuthorization([userType.admin, userType.staff]),
+  async (req, res, next) => {
+    try {
+      const result = await editProductVariantService(req.body);
+      res.status(200).json({
+        message: "Successfully Edit Product Variant",
+        data: result,
+      });
+    } catch (err) {
+      next(err);
+    }
   }
-});
+);
 
 //////////////////   Product Status Change /////////////
-productRouter.put("/status-change", async (req, res, next) => {
+productRouter.put("/status-change", userAuthorization([userType.admin]), async (req, res, next) => {
   try {
     const result = await productStatusChange(req.body);
     res.status(200).json({
