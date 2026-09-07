@@ -12,6 +12,45 @@ import {
   hashOrderAccessToken,
 } from "../shared/orderAccess.js";
 
+const reserveVariantStock = async (variantId, quantity) => {
+  const variant = await variantModel.findOneAndUpdate(
+    { _id: variantId, stock: { $gte: quantity } },
+    { $inc: { stock: -quantity } },
+    { new: true }
+  );
+
+  if (!variant) throw HttpError.notFound("stock no more");
+
+  await variantModel.updateOne(
+    { _id: variantId },
+    {
+      $set: {
+        stockStatus: variant.stock === 0 ? StockStatus.outOfStock : StockStatus.inStock,
+      },
+    }
+  );
+
+  return variant;
+};
+
+const restoreReservedStock = async (reservedVariants) => {
+  await Promise.all(
+    reservedVariants.map(({ variantId, quantity }) =>
+      variantModel.findOneAndUpdate(
+        { _id: variantId },
+        { $inc: { stock: quantity } },
+        { new: true }
+      )
+    )
+  );
+
+  await Promise.all(
+    reservedVariants.map(({ variantId }) =>
+      variantModel.updateOne({ _id: variantId }, { $set: { stockStatus: StockStatus.inStock } })
+    )
+  );
+};
+
 //////////////////////////////////////// Add Order  //////////////////////////
 export const addOrderService = async (data) => {
   const { error } = addOrderValidation(data);
@@ -20,29 +59,45 @@ export const addOrderService = async (data) => {
   const isCheckPaymentType = Object.values(PaymentType).includes(data.paymentMethod);
   if (!isCheckPaymentType) throw HttpError.badRequest("Invalid Payment Type");
 
-  const orderItemsArrayObj = await Promise.all(
-    data.product.map(async (currentObj) => {
-      const result = await variantModel.findOne({
-        _id: currentObj.variantId,
-        stock: { $gte: currentObj.qty },
-      });
+  const cityInfo = await cityModal.findById({ _id: data.cityId });
+  if (!cityInfo) throw HttpError.notFound("cityId Invalid");
 
-      if (!result) throw HttpError.notFound("stock no more");
+  if (cityInfo.status === cityStatus.deactivate)
+    throw HttpError.badRequest(`Correctly shipping city is ${cityStatus.deactivate}`);
 
-      const variantNewObj = {
+  const requestedQuantities = new Map();
+  for (const item of data.product) {
+    requestedQuantities.set(
+      item.variantId,
+      (requestedQuantities.get(item.variantId) || 0) + item.qty
+    );
+  }
+
+  const reservedVariants = [];
+  let orderItemsArrayObj;
+  try {
+    const variantDetails = new Map();
+    for (const [variantId, quantity] of requestedQuantities) {
+      const variant = await reserveVariantStock(variantId, quantity);
+      reservedVariants.push({ variantId, quantity });
+      variantDetails.set(variantId, variant);
+    }
+
+    orderItemsArrayObj = data.product.map((currentObj) => {
+      const result = variantDetails.get(currentObj.variantId);
+      return {
         ...currentObj,
-        ...{
-          price: result.price,
-          discountPrice: result.discountPrice,
-          cost: result.cost,
-          variantName: result.variantName,
-          stock: result.stock,
-        },
+        price: result.price,
+        discountPrice: result.discountPrice,
+        cost: result.cost,
+        variantName: result.variantName,
+        stock: result.stock,
       };
-
-      return variantNewObj;
-    })
-  );
+    });
+  } catch (error) {
+    await restoreReservedStock(reservedVariants);
+    throw error;
+  }
 
   const orderDetails = orderItemsArrayObj.reduce(
     (perviousValue, currentValue) => {
@@ -68,12 +123,6 @@ export const addOrderService = async (data) => {
     }
   );
 
-  const cityInfo = await cityModal.findById({ _id: data.cityId });
-  if (!cityInfo) throw HttpError.notFound("cityId Invalid");
-
-  if (cityInfo.status === cityStatus.deactivate)
-    throw HttpError.badRequest(`Correctly shipping city is ${cityStatus.deactivate}`);
-
   orderDetails.shippingFees = +cityInfo.deliverCharges;
   orderDetails.total = Number(orderDetails.subtotal) + Number(cityInfo.deliverCharges);
 
@@ -88,18 +137,6 @@ export const addOrderService = async (data) => {
   };
   const orderAccessToken = createOrderAccessToken();
   const customerAccessTokenHash = hashOrderAccessToken(orderAccessToken);
-
-  // reduce stock product variant
-  await Promise.all(
-    orderItemsArrayObj.map(async (variant) => {
-      const currentStock = Number(variant.stock) - Number(variant.qty);
-      const stockStatus = currentStock === 0 ? StockStatus.outOfStock : StockStatus.inStock;
-      await variantModel.updateOne(
-        { _id: variant.variantId },
-        { $set: { stock: currentStock, stockStatus: stockStatus } }
-      );
-    })
-  );
 
   const saveOrderItems = orderItemsArrayObj.map((orderItem) => {
     const { stock, ...order } = orderItem;
@@ -119,8 +156,13 @@ export const addOrderService = async (data) => {
       total: orderDetails.total,
       profit: orderDetails.profit,
     });
-    const savedOrder = await saveOrder.save();
-    return customerOrderResponse(savedOrder, orderAccessToken);
+    try {
+      const savedOrder = await saveOrder.save();
+      return customerOrderResponse(savedOrder, orderAccessToken);
+    } catch (error) {
+      await restoreReservedStock(reservedVariants);
+      throw error;
+    }
   } else if (PaymentType.online === data.paymentMethod) {
     const initOrder = new orderModel({
       customerAccessTokenHash: customerAccessTokenHash,
@@ -135,17 +177,22 @@ export const addOrderService = async (data) => {
       profit: orderDetails.profit,
     });
 
-    const savedOrder = await initOrder.save();
-    const paymentIntent = await createPaymentIntentService(savedOrder.orderId, savedOrder.total);
+    try {
+      const savedOrder = await initOrder.save();
+      const paymentIntent = await createPaymentIntentService(savedOrder.orderId, savedOrder.total);
 
-    await orderModel.updateOne(
-      { _id: savedOrder._id },
-      {
-        $set: { "paymentInfo.paymentId": paymentIntent.paymentId },
-      }
-    );
+      await orderModel.updateOne(
+        { _id: savedOrder._id },
+        {
+          $set: { "paymentInfo.paymentId": paymentIntent.paymentId },
+        }
+      );
 
-    return customerOrderResponse(savedOrder, orderAccessToken, paymentIntent.clientSecret);
+      return customerOrderResponse(savedOrder, orderAccessToken, paymentIntent.clientSecret);
+    } catch (error) {
+      await restoreReservedStock(reservedVariants);
+      throw error;
+    }
   }
 };
 
