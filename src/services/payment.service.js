@@ -12,13 +12,14 @@ import {
 const restoreOrderStock = async (order) => {
   await Promise.all(
     order.product.map((item) =>
-      variantModel.updateOne(
-        { _id: item.variantId },
+      variantModel.updateOne({ _id: item.variantId }, [
         {
-          $inc: { stock: Number(item.qty) },
-          $set: { stockStatus: StockStatus.inStock },
-        }
-      )
+          $set: {
+            stock: { $add: ["$stock", Number(item.qty)] },
+            stockStatus: StockStatus.inStock,
+          },
+        },
+      ])
     )
   );
 };

@@ -15,20 +15,24 @@ import {
 const reserveVariantStock = async (variantId, quantity) => {
   const variant = await variantModel.findOneAndUpdate(
     { _id: variantId, stock: { $gte: quantity } },
-    { $inc: { stock: -quantity } },
+    [
+      {
+        $set: {
+          stock: { $subtract: ["$stock", quantity] },
+          stockStatus: {
+            $cond: [
+              { $eq: [{ $subtract: ["$stock", quantity] }, 0] },
+              StockStatus.outOfStock,
+              StockStatus.inStock,
+            ],
+          },
+        },
+      },
+    ],
     { new: true }
   );
 
   if (!variant) throw HttpError.notFound("stock no more");
-
-  await variantModel.updateOne(
-    { _id: variantId },
-    {
-      $set: {
-        stockStatus: variant.stock === 0 ? StockStatus.outOfStock : StockStatus.inStock,
-      },
-    }
-  );
 
   return variant;
 };
@@ -38,15 +42,16 @@ const restoreReservedStock = async (reservedVariants) => {
     reservedVariants.map(({ variantId, quantity }) =>
       variantModel.findOneAndUpdate(
         { _id: variantId },
-        { $inc: { stock: quantity } },
+        [
+          {
+            $set: {
+              stock: { $add: ["$stock", quantity] },
+              stockStatus: StockStatus.inStock,
+            },
+          },
+        ],
         { new: true }
       )
-    )
-  );
-
-  await Promise.all(
-    reservedVariants.map(({ variantId }) =>
-      variantModel.updateOne({ _id: variantId }, { $set: { stockStatus: StockStatus.inStock } })
     )
   );
 };
@@ -363,48 +368,41 @@ export const OrderByIdService = async (id, orderAccessToken) => {
 
 //////////////////////////////////////// complete order  ///////////////////////////////////////////////
 export const CompleteOrderServices = async (id) => {
-  const order = await orderModel.findOne({ orderId: id });
-  if (!order) throw HttpError.notFound("Invalid order Id");
-
-  if (order.orderStatus !== orderStatus.processing)
-    throw HttpError.badRequest(`sorry ...currently order status ${order.orderStatus}`);
-
-  await orderModel.updateOne(
-    { orderId: id },
-    {
-      $set: { orderStatus: orderStatus.complete },
-    }
+  const order = await orderModel.findOneAndUpdate(
+    { orderId: id, orderStatus: orderStatus.processing },
+    { $set: { orderStatus: orderStatus.complete } },
+    { new: true }
   );
+
+  if (!order) throw HttpError.notFound("Invalid or already closed order");
 
   return id;
 };
 
 //////////////////////////////////////// Get Order Cancel  ///////////////////////////////////////////////
 export const CancelOrderServices = async (id) => {
-  const currentOrder = await orderModel.findOne({ orderId: id });
+  const currentOrder = await orderModel.findOneAndUpdate(
+    { orderId: id, orderStatus: orderStatus.processing },
+    { $set: { orderStatus: orderStatus.reject } },
+    { new: true }
+  );
   if (!currentOrder) throw HttpError.notFound("Invalid order Id");
 
-  if (currentOrder.orderStatus !== orderStatus.processing)
-    throw HttpError.badRequest(`Sorry currently order status ${order.orderStatus}`);
-
   await Promise.all(
-    currentOrder.product.map(async (item) => {
-      const variant = await variantModel.findOne({
-        _id: item.variantId,
-      });
-      const newStock = Number(variant.stock) + Number(item.qty);
-      await variantModel.updateOne(
+    currentOrder.product.map((item) =>
+      variantModel.findOneAndUpdate(
         { _id: item.variantId },
-        { $set: { stock: newStock, stockStatus: StockStatus.inStock } }
-      );
-    })
-  );
-
-  await orderModel.updateOne(
-    { orderId: id },
-    {
-      $set: { orderStatus: orderStatus.reject },
-    }
+        [
+          {
+            $set: {
+              stock: { $add: ["$stock", item.qty] },
+              stockStatus: StockStatus.inStock,
+            },
+          },
+        ],
+        { new: true }
+      )
+    )
   );
 
   const message = "Successfully Order Cancel";
