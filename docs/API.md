@@ -639,7 +639,12 @@ All dashboard endpoints require Admin authentication and these query parameters:
 
 **Payload:** Raw `application/json` Stripe event body. Do not transform or JSON-encode the body again; signature verification requires the original raw bytes.
 
-**Success response:** `200`; `data` contains the webhook service result. The API verifies the Stripe signature against the unmodified raw body, checks the configured live/test mode, matches the PaymentIntent ID, amount, and currency to a pending online order, and records the Stripe event ID to make repeat deliveries idempotent. A successful payment intent updates the related order's status to `Processing`.
+**Success response:** `200`; `data` contains the webhook service result. The API verifies the Stripe signature against the unmodified raw body, checks the configured live/test mode, matches the PaymentIntent ID, amount, and currency to a pending online order, and records the Stripe event ID to make repeat deliveries idempotent.
+
+- `payment_intent.succeeded` changes the related order to `Processing` after amount and currency verification.
+- `payment_intent.payment_failed` and `payment_intent.canceled` reject the pending order and restore its reserved stock.
+- Repeat webhook deliveries are acknowledged without changing the order or restoring stock twice.
+- Stale pending orders are recovered by the scheduled job after `PAYMENT_PENDING_TIMEOUT_MINUTES`; eligible Stripe PaymentIntents are canceled and the reserved stock is restored.
 
 ## Mail
 

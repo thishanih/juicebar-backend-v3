@@ -92,6 +92,18 @@ SMTP_TO=your-email@example.com
 
 `NODE_ENV` selects the file at `env/<NODE_ENV>.env`. Because the application chooses that file before loading it, set `NODE_ENV` in the shell or process environment when using anything other than the default `development` environment.
 
+## Security Operations
+
+Rotate any credentials that were previously exposed in source control or environment files: Stripe, MongoDB, Cloudinary, SMTP, Sentry, and JWT secrets. Update the active deployment environment after rotating each credential; existing access and refresh tokens must be reissued after JWT secret rotation.
+
+Legacy payment fields can be removed from the configured database with the guarded maintenance command below. Back up the database and verify the selected environment before running it. The command is intentionally not run during application startup.
+
+```bash
+CONFIRM_PAYMENT_DATA_REDACTION=true npm run security:redact-payment-data
+```
+
+For production HTTPS, terminate TLS at a trusted reverse proxy and set `FORCE_HTTPS=true`, or provide both `HTTPS_KEY_PATH` and `HTTPS_CERT_PATH` for native TLS. Never commit certificate or private-key files.
+
 ## Project Structure
 
 ```text
