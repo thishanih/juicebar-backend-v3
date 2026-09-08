@@ -120,26 +120,74 @@ For production HTTPS, terminate TLS at a trusted reverse proxy and set `FORCE_HT
 
 ```text
 .
+├── docs/                         # API and payment flow documentation
+│   ├── API.md                   # Endpoint reference and auth requirements
+│   └── PAYMENT_FLOW.md          # Stripe payment flow documentation
 ├── env/                         # Local environment files (ignored by Git)
 ├── postman/                     # Postman collection assets
-├── scripts/                      # Explicitly invoked maintenance scripts
+│   └── juice-bar-api.postman_collection.json
+├── scripts/
+│   └── redactSensitivePaymentData.js
 ├── src/
+│   ├── controllers/             # Route handlers by feature
+│   │   ├── auth.controller.js
+│   │   ├── category.controller.js
+│   │   ├── city.controller.js
+│   │   ├── dashboard.controller.js
+│   │   ├── mail.controller.js
+│   │   ├── order.controller.js
+│   │   ├── payment.controller.js
+│   │   ├── product.controller.js
+│   │   └── user.controller.js
 │   ├── index.js                 # Express app entry point
 │   ├── logs/                    # Runtime request and error logs (ignored by Git)
 │   ├── middleware/
+│   │   ├── apiKey.js            # Public endpoint API key verifier
 │   │   ├── authorization.js     # JWT and role authorization
 │   │   ├── errorHandler.js      # Central error middleware
-│   │   └── logEvents.js         # Request and error logging
-│   ├── models/                  # Mongoose models
-│   │   └── sub/                 # Embedded schema definitions
-│   ├── router/                  # API router declarations, mounted under /api
-│   ├── services/                # Business logic and database operations
-│   └── shared/                  # Database, validation, uploads, email, and utilities
+│   │   ├── logEvents.js         # Request and error logging
+│   │   └── rateLimit.js         # Rate limiting configuration
+│   ├── models/
+│   │   ├── category.model.js
+│   │   ├── city.modal.js
+│   │   ├── oder.model.js
+│   │   ├── product.model.js
+│   │   ├── refreshToken.modal.js
+│   │   ├── user.model.js
+│   │   ├── variant.modal.js
+│   │   └── sub/
+│   ├── router/
+│   │   └── api.router.js        # API mount points for each feature
+│   ├── services/
+│   │   ├── auth.service.js
+│   │   ├── category.service.js
+│   │   ├── city.service.js
+│   │   ├── dashboard.service.js
+│   │   ├── order.service.js
+│   │   ├── order.v2.service.js
+│   │   ├── payment.service.js
+│   │   ├── product.service.js
+│   │   └── user.service.js
+│   ├── shared/
+│   │   ├── authTokens.js
+│   │   ├── cloudinary.config.js
+│   │   ├── constants.js
+│   │   ├── database.js
+│   │   ├── email.services.js
+│   │   ├── generatePassword.js
+│   │   ├── hhttp.error.js
+│   │   ├── multer.config.js
+│   │   ├── orderAccess.js
+│   │   ├── paymentVerification.js
+│   │   └── validation.js
+│   └── logs/                   # Runtime logs folder
 ├── .gitignore
 ├── .prettierrc.json
 ├── package.json
-├── test/                         # Node test suite
-└── README.md
+├── README.md
+├── test/
+│   └── security.test.js
+└── package-lock.json
 ```
 
 ## API Documentation
