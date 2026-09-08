@@ -16,7 +16,7 @@ authRouter.post("/login", loginRateLimit, async (req, res, next) => {
   }
 });
 
-authRouter.get("/refresh-token", async (req, res, next) => {
+authRouter.post("/refresh-token", async (req, res, next) => {
   try {
     const result = await refreshToken(req.headers["authorization"]);
     res.status(200).json({

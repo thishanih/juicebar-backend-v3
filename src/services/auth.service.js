@@ -4,6 +4,7 @@ import { loginValidation } from "../shared/validation.js";
 import HttpError from "../shared/htttp.error.js";
 import { userStatus } from "../shared/constants.js";
 import bencrypt from "bcryptjs";
+import { randomUUID } from "crypto";
 import {
   createAccessToken,
   createRefreshToken,
@@ -33,6 +34,7 @@ export const login = async (data) => {
 
   const newAccessToken = createAccessToken(tokenInfo);
   const newRefreshToken = createRefreshToken(tokenInfo);
+  const refreshTokenFamilyId = randomUUID();
 
   const authorization = {
     userid: userExists.id,
@@ -47,6 +49,7 @@ export const login = async (data) => {
   const refreshData = new RefreshTokenModel({
     userId: userExists.id,
     token: hashRefreshToken(newRefreshToken),
+    familyId: refreshTokenFamilyId,
   });
 
   await refreshData.save();
@@ -66,16 +69,28 @@ export const refreshToken = async (refreshTokenKey) => {
   if (!bearerToken) throw HttpError.badRequest("Token missing");
 
   const refreshTokenHash = hashRefreshToken(bearerToken);
-  const isToken = await RefreshTokenModel.findOne({ token: refreshTokenHash });
-  if (!isToken) throw HttpError.badRequest("Refresh token services are no longer valid");
-
-  await RefreshTokenModel.deleteOne({ token: refreshTokenHash });
-
   let refreshTokenDecoded;
   try {
     refreshTokenDecoded = verifyRefreshToken(bearerToken);
   } catch (err) {
     throw HttpError.badRequest("Refresh token services are not verified");
+  }
+
+  const refreshData = await RefreshTokenModel.findOneAndUpdate(
+    { token: refreshTokenHash, revokedAt: null },
+    { $set: { revokedAt: new Date(), familyId: randomUUID() } },
+    { new: true }
+  );
+
+  if (!refreshData) {
+    const reusedToken = await RefreshTokenModel.findOne({ token: refreshTokenHash });
+    if (reusedToken?.revokedAt && reusedToken.familyId) {
+      await RefreshTokenModel.updateMany(
+        { familyId: reusedToken.familyId, revokedAt: null },
+        { $set: { revokedAt: new Date() } }
+      );
+    }
+    throw HttpError.badRequest("Refresh token services are no longer valid");
   }
 
   const userExists = await userModel.findById(refreshTokenDecoded._id);
@@ -92,12 +107,13 @@ export const refreshToken = async (refreshTokenKey) => {
   const newAccessToken = createAccessToken(tokenInfo);
   const newRefreshToken = createRefreshToken(tokenInfo);
 
-  const refreshData = new RefreshTokenModel({
+  const newRefreshData = new RefreshTokenModel({
     userId: userExists._id,
     token: hashRefreshToken(newRefreshToken),
+    familyId: refreshData.familyId,
   });
 
-  await refreshData.save();
+  await newRefreshData.save();
 
   const authorization = {
     accessToken: newAccessToken,

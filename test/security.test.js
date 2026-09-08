@@ -19,6 +19,7 @@ process.env.RESET_TOKEN = "1h";
 
 const { createAccessToken, createRefreshToken, verifyAccessToken, verifyRefreshToken } =
   await import("../src/shared/authTokens.js");
+const { default: authRouter } = await import("../src/routers/auth.router.js");
 const { default: orderRouter } = await import("../src/routers/order.router.js");
 
 test("customer order responses exclude payment and internal cost data", () => {
@@ -49,6 +50,15 @@ test("access and refresh tokens cannot be used interchangeably", () => {
   assert.equal(verifyRefreshToken(refreshToken).tokenType, "refresh");
   assert.throws(() => verifyAccessToken(refreshToken));
   assert.throws(() => verifyRefreshToken(accessToken));
+});
+
+test("refresh token rotation uses POST", () => {
+  const refreshRoute = authRouter.stack.find(
+    (layer) => layer.route?.path === "/refresh-token"
+  ).route;
+
+  assert.equal(refreshRoute.methods.post, true);
+  assert.equal(refreshRoute.methods.get, undefined);
 });
 
 test("payment intent must match the expected successful order payment", () => {

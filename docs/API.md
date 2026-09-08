@@ -69,7 +69,7 @@ An `ID` is sent as a string. The Joi schemas require a non-empty string; service
 | ------ | ------------------------------------------ | --------------------- |
 | GET    | `/health`                                  | Public                |
 | POST   | `/auth/login`                              | Public                |
-| GET    | `/auth/refresh-token`                      | Refresh token         |
+| POST   | `/auth/refresh-token`                      | Refresh token         |
 | POST   | `/auth/sign-out`                           | Refresh token         |
 | POST   | `/user/addUser`                            | Admin                 |
 | GET    | `/user/displaystaff`                       | Admin                 |
