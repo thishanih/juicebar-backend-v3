@@ -2,6 +2,7 @@ import express from "express";
 import { userType } from "../shared/constants.js";
 import { userAuthorization } from "../middleware/authorization.js";
 import { checkoutRateLimit, orderLookupRateLimit } from "../middleware/rateLimit.js";
+import { apiKeyAuthorization } from "../middleware/apiKey.js";
 
 import {
   addOrderService,
@@ -15,7 +16,7 @@ import {
 const orderRouter = express.Router();
 
 //////////////////  Add new Order /////////////
-orderRouter.post("/add-order", checkoutRateLimit, async (req, res, next) => {
+orderRouter.post("/add-order", apiKeyAuthorization, checkoutRateLimit, async (req, res, next) => {
   try {
     const result = await addOrderService(req.body);
     res.status(200).json({
@@ -45,7 +46,7 @@ orderRouter.get(
 );
 
 //////////////////  Display Order Id /////////////
-orderRouter.get("/:orderId", orderLookupRateLimit, async (req, res, next) => {
+orderRouter.get("/:orderId", apiKeyAuthorization, orderLookupRateLimit, async (req, res, next) => {
   try {
     const result = await OrderByIdService(req.params.orderId, req.headers["x-order-access-token"]);
     res.status(200).json({

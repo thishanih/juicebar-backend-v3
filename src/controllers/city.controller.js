@@ -1,6 +1,7 @@
 import express from "express";
 import { userType } from "../shared/constants.js";
 import { userAuthorization } from "../middleware/authorization.js";
+import { apiKeyAuthorization } from "../middleware/apiKey.js";
 import {
   addCityService,
   displayCity,
@@ -39,7 +40,7 @@ cityRouter.get("/", userAuthorization([userType.admin, userType.staff]), async (
 });
 
 ////////////////  Display City (web Site) /////////////
-cityRouter.get("/web", async (req, res, next) => {
+cityRouter.get("/web", apiKeyAuthorization, async (req, res, next) => {
   try {
     const result = await displayCityWebSite();
     res.status(200).json({
@@ -52,7 +53,7 @@ cityRouter.get("/web", async (req, res, next) => {
 });
 
 //////////////////  Display City Id /////////////
-cityRouter.get("/:id", async (req, res, next) => {
+cityRouter.get("/:id", apiKeyAuthorization, async (req, res, next) => {
   try {
     const result = await displayByIdCategory(req.params.id);
     res.status(200).json({

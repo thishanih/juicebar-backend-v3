@@ -1,6 +1,7 @@
 import express from "express";
 import { userType } from "../shared/constants.js";
 import { userAuthorization } from "../middleware/authorization.js";
+import { apiKeyAuthorization } from "../middleware/apiKey.js";
 import {
   addCategoryService,
   displayCategory,
@@ -31,7 +32,7 @@ categoryRouter.post(
 );
 
 //////////////////  Display category Admin /////////////
-categoryRouter.get("/", async (req, res, next) => {
+categoryRouter.get("/", apiKeyAuthorization, async (req, res, next) => {
   try {
     const result = await displayCategory(req.query);
     res.status(200).json({

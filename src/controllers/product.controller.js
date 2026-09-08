@@ -1,6 +1,7 @@
 import express from "express";
 import { userType } from "../shared/constants.js";
 import { userAuthorization } from "../middleware/authorization.js";
+import { apiKeyAuthorization } from "../middleware/apiKey.js";
 import {
   displayProduct,
   addProductService,
@@ -54,7 +55,7 @@ productRouter.get(
 );
 
 //////////////////  Display Web Product  /////////////
-productRouter.get("/online", async (req, res, next) => {
+productRouter.get("/online", apiKeyAuthorization, async (req, res, next) => {
   try {
     const result = await displayOnlineProduct(req.query);
     res.status(200).json({
@@ -67,7 +68,7 @@ productRouter.get("/online", async (req, res, next) => {
 });
 
 //////////////////   Display Product Id   /////////////
-productRouter.get("/:id", async (req, res, next) => {
+productRouter.get("/:id", apiKeyAuthorization, async (req, res, next) => {
   try {
     const result = await displayByIdProduct(req.params.id);
     res.status(200).json({
@@ -164,7 +165,7 @@ productRouter.put("/status-change", userAuthorization([userType.admin]), async (
 });
 
 //////////////////   Related Products /////////////
-productRouter.get("/related-product/:categoryId", async (req, res, next) => {
+productRouter.get("/related-product/:categoryId", apiKeyAuthorization, async (req, res, next) => {
   try {
     const result = await relatedProductServices(req.params.categoryId);
     res.status(200).json({

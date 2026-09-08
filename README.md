@@ -38,7 +38,18 @@ NODE_ENV=test npm run dev
 Verify that the API is running:
 
 ```bash
-curl http://localhost:5001/api/health
+curl -H "X-API-Key: replace_with_a_long_random_value" http://localhost:5001/api/health
+```
+
+### API Access
+
+All public client endpoints require the `X-API-Key` request header. Set `PUBLIC_API_KEY` to a long random value in the active environment file and send that same value with requests. The Stripe webhook is the exception; it authenticates requests with Stripe's `stripe-signature` header.
+
+Example payment-config request:
+
+```bash
+curl -H "X-API-Key: $PUBLIC_API_KEY" \
+	http://localhost:5001/api/online-payment/config
 ```
 
 ## Environment Configuration
@@ -68,6 +79,7 @@ CLOUDINARY_API_KEY=replace_me
 CLOUDINARY_API_SECRET=replace_me
 
 STRIPE_PUBLISHABLE_KEY=pk_test_replace_me
+PUBLIC_API_KEY=replace_with_a_long_random_value
 STRIPE_SECRET_KEY=sk_test_replace_me
 STRIPE_WEBHOOK_SECRET_KEY=whsec_replace_me
 STRIPE_LIVE_MODE=false
@@ -120,7 +132,7 @@ For production HTTPS, terminate TLS at a trusted reverse proxy and set `FORCE_HT
 │   │   └── logEvents.js         # Request and error logging
 │   ├── models/                  # Mongoose models
 │   │   └── sub/                 # Embedded schema definitions
-│   ├── routers/                 # Route declarations, mounted under /api
+│   ├── router/                  # API router declarations, mounted under /api
 │   ├── services/                # Business logic and database operations
 │   └── shared/                  # Database, validation, uploads, email, and utilities
 ├── .gitignore
@@ -133,6 +145,8 @@ For production HTTPS, terminate TLS at a trusted reverse proxy and set `FORCE_HT
 ## API Documentation
 
 The complete endpoint reference, including authentication, validation, parameters, payloads, and response formats, is available in [docs/API.md](docs/API.md).
+
+Import [postman/juice-bar-api.postman_collection.json](postman/juice-bar-api.postman_collection.json) into Postman to access every API endpoint grouped by feature. Before sending requests, set the collection variables for `apiKey`, `accessToken`, `refreshToken`, IDs, and `imagePath` as needed.
 
 ## Available Scripts
 

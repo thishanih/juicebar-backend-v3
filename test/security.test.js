@@ -19,8 +19,8 @@ process.env.RESET_TOKEN = "1h";
 
 const { createAccessToken, createRefreshToken, verifyAccessToken, verifyRefreshToken } =
   await import("../src/shared/authTokens.js");
-const { default: authRouter } = await import("../src/routers/auth.router.js");
-const { default: orderRouter } = await import("../src/routers/order.router.js");
+const { default: authRouter } = await import("../src/controllers/auth.controller.js");
+const { default: orderRouter } = await import("../src/controllers/order.controller.js");
 
 test("customer order responses exclude payment and internal cost data", () => {
   const orderAccessToken = createOrderAccessToken();

@@ -1,10 +1,11 @@
 import express from "express";
 import { login, refreshToken, signOut } from "../services/auth.service.js";
 import { loginRateLimit } from "../middleware/rateLimit.js";
+import { apiKeyAuthorization } from "../middleware/apiKey.js";
 
 const authRouter = express.Router();
 
-authRouter.post("/login", loginRateLimit, async (req, res, next) => {
+authRouter.post("/login", apiKeyAuthorization, loginRateLimit, async (req, res, next) => {
   try {
     const result = await login(req.body);
     res.status(200).json({

@@ -8,10 +8,11 @@ import orderRouter from "../controllers/order.controller.js";
 import dashboardRouter from "../controllers/dashboard.controller.js";
 import onlinePaymentRouter from "../controllers/payment.controller.js";
 import mailRouter from "../controllers/mail.controller.js";
+import { apiKeyAuthorization } from "../middleware/apiKey.js";
 
 const apiRouter = express.Router();
 
-apiRouter.get("/health", (req, res) => {
+apiRouter.get("/health", apiKeyAuthorization, (req, res) => {
   res.status(200).json({
     status: "ok",
     timestamp: new Date().toISOString(),

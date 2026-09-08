@@ -17,7 +17,7 @@ dotenv.config({
 console.log("Running environment : " + env);
 
 const { default: Database } = await import("./shared/database.js");
-const { default: apiRouter } = await import("./routers/api.router.js");
+const { default: apiRouter } = await import("./router/api.router.js");
 const { recoverAbandonedPaymentOrders } = await import("./services/payment.service.js");
 
 const app = express();
@@ -66,8 +66,8 @@ app.use(
       if (!origin || allowedOrigins.has(origin)) return callback(null, true);
       return callback(HttpError.forbidden("Origin not allowed"));
     },
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Authorization", "Content-Type", "X-Order-Access-Token"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Authorization", "Content-Type", "X-API-Key", "X-Order-Access-Token"],
   })
 );
 app.use("/api", apiRouter);

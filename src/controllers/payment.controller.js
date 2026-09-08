@@ -1,9 +1,10 @@
 import express from "express";
+import { apiKeyAuthorization } from "../middleware/apiKey.js";
 import { webhookService } from "../services/payment.service.js";
 
 const onlinePaymentRouter = express.Router();
 
-onlinePaymentRouter.get("/config", (req, res) => {
+onlinePaymentRouter.get("/config", apiKeyAuthorization, (req, res) => {
   try {
     const result = {
       publishableKey: process.env.STRIPE_PUBLISHABLE_KEY,

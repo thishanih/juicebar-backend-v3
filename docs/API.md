@@ -67,8 +67,8 @@ An `ID` is sent as a string. The Joi schemas require a non-empty string; service
 
 | Method | Endpoint                                   | Auth                  |
 | ------ | ------------------------------------------ | --------------------- |
-| GET    | `/health`                                  | Public                |
-| POST   | `/auth/login`                              | Public                |
+| GET    | `/health`                                  | `X-API-Key`           |
+| POST   | `/auth/login`                              | `X-API-Key`           |
 | POST   | `/auth/refresh-token`                      | Refresh token         |
 | POST   | `/auth/sign-out`                           | Refresh token         |
 | POST   | `/user/addUser`                            | Admin                 |
@@ -78,27 +78,27 @@ An `ID` is sent as a string. The Joi schemas require a non-empty string; service
 | PUT    | `/user/user-status-change`                 | Admin                 |
 | GET    | `/user/info`                               | Admin or staff        |
 | POST   | `/category/add-category`                   | Admin                 |
-| GET    | `/category/`                               | Public                |
+| GET    | `/category/`                               | `X-API-Key`           |
 | GET    | `/category/:id`                            | Admin or staff        |
 | PUT    | `/category/edit-category`                  | Admin                 |
 | PUT    | `/category/update-status`                  | Admin                 |
 | POST   | `/product/add`                             | Admin                 |
 | GET    | `/product/`                                | Admin or staff        |
-| GET    | `/product/online`                          | Public                |
-| GET    | `/product/:id`                             | Public                |
+| GET    | `/product/online`                          | `X-API-Key`           |
+| GET    | `/product/:id`                             | `X-API-Key`           |
 | PUT    | `/product/add-multiple-image/:productId`   | Admin or staff        |
 | DELETE | `/product/delete-multiple-image`           | Admin or staff        |
 | PUT    | `/product/edit-details`                    | Admin or staff        |
 | PUT    | `/product/edit-variant`                    | Admin or staff        |
 | PUT    | `/product/status-change`                   | Admin                 |
-| GET    | `/product/related-product/:categoryId`     | Public                |
+| GET    | `/product/related-product/:categoryId`     | `X-API-Key`           |
 | POST   | `/city/add`                                | Admin                 |
 | GET    | `/city/`                                   | Admin or staff        |
-| GET    | `/city/web`                                | Public                |
-| GET    | `/city/:id`                                | Public                |
+| GET    | `/city/web`                                | `X-API-Key`           |
+| GET    | `/city/:id`                                | `X-API-Key`           |
 | PUT    | `/city/edit`                               | Admin                 |
 | PUT    | `/city/edit-status`                        | Admin                 |
-| POST   | `/order/add-order`                         | Public                |
+| POST   | `/order/add-order`                         | `X-API-Key`           |
 | GET    | `/order/`                                  | Admin or staff        |
 | GET    | `/order/:orderId`                          | Customer access token |
 | GET    | `/order/admin/:orderId`                    | Admin or staff        |
@@ -108,7 +108,7 @@ An `ID` is sent as a string. The Joi schemas require a non-empty string; service
 | GET    | `/dashboard/admin/income-summary`          | Admin                 |
 | GET    | `/dashboard/admin/order-performance-chart` | Admin                 |
 | GET    | `/dashboard/admin/product-sale`            | Admin                 |
-| GET    | `/online-payment/config`                   | Public                |
+| GET    | `/online-payment/config`                   | `X-API-Key`           |
 | POST   | `/online-payment/webhook`                  | Stripe signature      |
 | GET    | `/mail/`                                   | Admin                 |
 
@@ -116,7 +116,7 @@ An `ID` is sent as a string. The Joi schemas require a non-empty string; service
 
 ### GET `/health`
 
-**Authentication:** Public.
+**Authentication:** `X-API-Key` header matching `PUBLIC_API_KEY`.
 
 **Parameters and payload:** None.
 
@@ -126,7 +126,7 @@ An `ID` is sent as a string. The Joi schemas require a non-empty string; service
 
 ### POST `/auth/login`
 
-**Authentication:** Public.
+**Authentication:** `X-API-Key` header matching `PUBLIC_API_KEY`.
 
 **Payload:** JSON.
 
@@ -246,7 +246,7 @@ An `ID` is sent as a string. The Joi schemas require a non-empty string; service
 
 ### GET `/category/`
 
-**Authentication:** Public.
+**Authentication:** `X-API-Key` header matching `PUBLIC_API_KEY`.
 
 **Query parameters:** Optional `page`, `per_page`, `search` (category name), `slug`, and `status` (category status).
 
@@ -321,7 +321,7 @@ An `ID` is sent as a string. The Joi schemas require a non-empty string; service
 
 ### GET `/product/online`
 
-**Authentication:** Public.
+**Authentication:** `X-API-Key` header matching `PUBLIC_API_KEY`.
 
 **Query parameters:** Optional `page`, `per_page`, `search`, `slug`, `priceMin`, `PriceMax`, and `categoryId`. `categoryId` may be a comma-separated list of category IDs. Note the implemented parameter name is `PriceMax` with a capital `P`.
 
@@ -329,7 +329,7 @@ An `ID` is sent as a string. The Joi schemas require a non-empty string; service
 
 ### GET `/product/:id`
 
-**Authentication:** Public.
+**Authentication:** `X-API-Key` header matching `PUBLIC_API_KEY`.
 
 **Path parameters:** `id` is the product ID.
 
@@ -405,7 +405,7 @@ An `ID` is sent as a string. The Joi schemas require a non-empty string; service
 
 ### GET `/product/related-product/:categoryId`
 
-**Authentication:** Public.
+**Authentication:** `X-API-Key` header matching `PUBLIC_API_KEY`.
 
 **Path parameters:** `categoryId` is the category ID.
 
@@ -436,7 +436,7 @@ An `ID` is sent as a string. The Joi schemas require a non-empty string; service
 
 ### GET `/city/web`
 
-**Authentication:** Public.
+**Authentication:** `X-API-Key` header matching `PUBLIC_API_KEY`.
 
 **Parameters and payload:** None.
 
@@ -444,7 +444,7 @@ An `ID` is sent as a string. The Joi schemas require a non-empty string; service
 
 ### GET `/city/:id`
 
-**Authentication:** Public.
+**Authentication:** `X-API-Key` header matching `PUBLIC_API_KEY`.
 
 **Path parameters:** `id` is the city ID.
 
@@ -481,7 +481,7 @@ An `ID` is sent as a string. The Joi schemas require a non-empty string; service
 
 ### POST `/order/add-order`
 
-**Authentication:** Public.
+**Authentication:** `X-API-Key` header matching `PUBLIC_API_KEY`.
 
 **Payload:** JSON.
 
@@ -577,9 +577,9 @@ All dashboard endpoints require Admin authentication and these query parameters:
 
 ### GET `/online-payment/config`
 
-**Authentication:** Public.
+**Authentication:** `X-API-Key` header matching `PUBLIC_API_KEY`.
 
-**Parameters and payload:** None.
+**Parameters and payload:** None. The API key is required even though the Stripe publishable key is safe to expose to the client.
 
 **Success response:** `200`; `data.publishableKey` contains the Stripe publishable key.
 

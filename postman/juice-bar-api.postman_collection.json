@@ -1,0 +1,594 @@
+{
+  "info": {
+    "_postman_id": "5c6d6d0f-6c4a-4d67-9b2f-juice-bar-api",
+    "name": "Juice Bar E-commerce API",
+    "description": "Complete request collection for the Juice Bar API. Public client endpoints require X-API-Key. JWT-protected requests use accessToken or refreshToken. The customer order lookup also requires X-Order-Access-Token. Set imagePath to a local image before running upload requests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5001/api" },
+    { "key": "apiKey", "value": "replace_with_a_long_random_value" },
+    { "key": "accessToken", "value": "replace_with_access_token" },
+    { "key": "refreshToken", "value": "replace_with_refresh_token" },
+    { "key": "orderAccessToken", "value": "replace_with_order_access_token" },
+    { "key": "imagePath", "value": "/absolute/path/to/image.jpg" },
+    { "key": "userId", "value": "replace_with_user_id" },
+    { "key": "categoryId", "value": "replace_with_category_id" },
+    { "key": "productId", "value": "replace_with_product_id" },
+    { "key": "variantId", "value": "replace_with_variant_id" },
+    { "key": "imageId", "value": "replace_with_image_id" },
+    { "key": "cityId", "value": "replace_with_city_id" },
+    { "key": "orderId", "value": "Inv-replace_with_order_reference" },
+    { "key": "stripeSignature", "value": "replace_with_stripe_signature" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"replace_with_password\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "Refresh token",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{refreshToken}}" }],
+            "url": "{{baseUrl}}/auth/refresh-token"
+          }
+        },
+        {
+          "name": "Sign out",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{refreshToken}}" }],
+            "url": "{{baseUrl}}/auth/sign-out"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Add staff user",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "image", "type": "file", "src": "{{imagePath}}" },
+                { "key": "firstName", "value": "Staff", "type": "text" },
+                { "key": "lastName", "value": "User", "type": "text" },
+                { "key": "email", "value": "staff@example.com", "type": "text" },
+                { "key": "branch", "value": "Main", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/user/addUser"
+          }
+        },
+        {
+          "name": "List staff users",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/user/displaystaff?page=1&per_page=20&search=&branch="
+          }
+        },
+        {
+          "name": "Get staff user",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/user/display-staff/{{userId}}"
+          }
+        },
+        {
+          "name": "Edit profile",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "userId", "value": "{{userId}}", "type": "text" },
+                { "key": "firstName", "value": "Updated", "type": "text" },
+                { "key": "lastName", "value": "User", "type": "text" },
+                { "key": "email", "value": "updated@example.com", "type": "text" },
+                { "key": "branch", "value": "Main", "type": "text" },
+                { "key": "isActivePassword", "value": "false", "type": "text" },
+                { "key": "oldPassword", "value": "", "type": "text" },
+                { "key": "newPassword", "value": "", "type": "text" },
+                { "key": "image", "value": "existing-image-url", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/user/profile-edit"
+          }
+        },
+        {
+          "name": "Change user status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"userStatus\": \"Active\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/user/user-status-change"
+          }
+        },
+        {
+          "name": "Current user info",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/user/info"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "Add category",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "{{imagePath}}" },
+                { "key": "categoryName", "value": "Juices", "type": "text" },
+                { "key": "description", "value": "Fresh juice products", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/category/add-category"
+          }
+        },
+        {
+          "name": "List categories",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/category/?page=1&per_page=20&search=&slug=&status="
+          }
+        },
+        {
+          "name": "Get category by id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/category/{{categoryId}}"
+          }
+        },
+        {
+          "name": "Edit category",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "categoryId", "value": "{{categoryId}}", "type": "text" },
+                { "key": "categoryName", "value": "Updated juices", "type": "text" },
+                { "key": "description", "value": "Updated category description", "type": "text" },
+                { "key": "photo", "value": "existing-image-url", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/category/edit-category"
+          }
+        },
+        {
+          "name": "Change category status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryId\": \"{{categoryId}}\",\n  \"status\": \"Active\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/category/update-status"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "Add product",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "image", "type": "file", "src": "{{imagePath}}" },
+                { "key": "productName", "value": "Orange Juice", "type": "text" },
+                { "key": "categoryId", "value": "{{categoryId}}", "type": "text" },
+                { "key": "primaryDescription", "value": "Fresh orange juice", "type": "text" },
+                {
+                  "key": "secondaryDescription",
+                  "value": "Made with fresh oranges",
+                  "type": "text"
+                },
+                {
+                  "key": "variant",
+                  "value": "[{\"variantName\":\"Regular\",\"stock\":10,\"price\":5,\"cost\":2}]",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/product/add"
+          }
+        },
+        {
+          "name": "List products",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/product/?page=1&per_page=20&search=&slug=&status="
+          }
+        },
+        {
+          "name": "List online products",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/product/online?page=1&per_page=20&search=&slug=&priceMin=&PriceMax=&categoryId="
+          }
+        },
+        {
+          "name": "Get product by id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/product/{{productId}}"
+          }
+        },
+        {
+          "name": "Add product images",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "image", "type": "file", "src": "{{imagePath}}" }]
+            },
+            "url": "{{baseUrl}}/product/add-multiple-image/{{productId}}"
+          }
+        },
+        {
+          "name": "Delete product image",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/product/delete-multiple-image?productId={{productId}}&imageId={{imageId}}"
+          }
+        },
+        {
+          "name": "Edit product details",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "productId", "value": "{{productId}}", "type": "text" },
+                { "key": "productName", "value": "Updated orange juice", "type": "text" },
+                { "key": "categoryId", "value": "{{categoryId}}", "type": "text" },
+                {
+                  "key": "primaryDescription",
+                  "value": "Updated primary description",
+                  "type": "text"
+                },
+                {
+                  "key": "secondaryDescription",
+                  "value": "Updated secondary description",
+                  "type": "text"
+                },
+                { "key": "image", "value": "existing-image-url", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/product/edit-details"
+          }
+        },
+        {
+          "name": "Edit product variant",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"variantId\": \"{{variantId}}\",\n  \"variantName\": \"Regular\",\n  \"stock\": 10,\n  \"price\": 5,\n  \"discountPrice\": 4,\n  \"cost\": 2\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/product/edit-variant"
+          }
+        },
+        {
+          "name": "Change product status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ProductId\": \"{{productId}}\",\n  \"status\": \"Active\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/product/status-change"
+          }
+        },
+        {
+          "name": "Related products",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/product/related-product/{{categoryId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cities",
+      "item": [
+        {
+          "name": "Add city",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cityName\": \"Colombo\",\n  \"deliverCharges\": 5\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/city/add"
+          }
+        },
+        {
+          "name": "List cities",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/city/?page=1&per_page=20&search=&status="
+          }
+        },
+        {
+          "name": "List public cities",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/city/web"
+          }
+        },
+        {
+          "name": "Get city by id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/city/{{cityId}}"
+          }
+        },
+        {
+          "name": "Edit city",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cityId\": \"{{cityId}}\",\n  \"cityName\": \"Colombo\",\n  \"deliverCharges\": 5\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/city/edit"
+          }
+        },
+        {
+          "name": "Change city status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cityId\": \"{{cityId}}\",\n  \"status\": \"Active\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/city/edit-status"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Create order",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Customer\",\n  \"lastName\": \"Example\",\n  \"email\": \"customer@example.com\",\n  \"phoneNumber\": \"+94112223344\",\n  \"address1\": \"1 Main Street\",\n  \"address2\": \"\",\n  \"cityId\": \"{{cityId}}\",\n  \"paymentMethod\": \"Cash\",\n  \"product\": [{\"variantId\": \"{{variantId}}\", \"productId\": \"{{productId}}\", \"qty\": 1}]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/order/add-order"
+          }
+        },
+        {
+          "name": "List orders",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/order/?page=1&per_page=20&search=&status="
+          }
+        },
+        {
+          "name": "Get customer order",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}" },
+              { "key": "X-Order-Access-Token", "value": "{{orderAccessToken}}" }
+            ],
+            "url": "{{baseUrl}}/order/{{orderId}}"
+          }
+        },
+        {
+          "name": "Get admin order",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/order/admin/{{orderId}}"
+          }
+        },
+        {
+          "name": "Cancel order",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/order/cancel/{{orderId}}"
+          }
+        },
+        {
+          "name": "Complete order",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/order/complete/{{orderId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Order status count",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/dashboard/admin/order-status-count?startDate=2026-01-01&endDate=2026-01-31"
+          }
+        },
+        {
+          "name": "Income summary",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/dashboard/admin/income-summary?startDate=2026-01-01&endDate=2026-01-31"
+          }
+        },
+        {
+          "name": "Order performance chart",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/dashboard/admin/order-performance-chart?startDate=2026-01-01&endDate=2026-01-31"
+          }
+        },
+        {
+          "name": "Product sales",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/dashboard/admin/product-sale?startDate=2026-01-01&endDate=2026-01-31"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Online payments",
+      "item": [
+        {
+          "name": "Stripe public config",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+            "url": "{{baseUrl}}/online-payment/config"
+          }
+        },
+        {
+          "name": "Stripe webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "stripe-signature", "value": "{{stripeSignature}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"evt_replace_me\",\n  \"object\": \"event\",\n  \"type\": \"payment_intent.succeeded\",\n  \"livemode\": false,\n  \"data\": {\n    \"object\": {\n      \"id\": \"pi_replace_me\",\n      \"amount\": 500,\n      \"amount_received\": 500,\n      \"currency\": \"usd\",\n      \"status\": \"succeeded\",\n      \"metadata\": {\n        \"orderId\": \"replace_with_order_reference\"\n      }\n    }\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/online-payment/webhook"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Mail",
+      "item": [
+        {
+          "name": "List mail",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/mail/"
+          }
+        }
+      ]
+    }
+  ]
+}
