@@ -14,11 +14,6 @@ export const categoryStatus = {
   deactivate: "Deactivate",
 };
 
-export const tokenStatus = {
-  active: "Active",
-  deactivate: "Deactivate",
-};
-
 export const productStatus = {
   active: "Active",
   deactivate: "Deactivate",

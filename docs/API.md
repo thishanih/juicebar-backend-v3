@@ -92,10 +92,6 @@ An `ID` is sent as a string. The Joi schemas require a non-empty string; service
 | PUT    | `/product/edit-variant`                    | Admin or staff        |
 | PUT    | `/product/status-change`                   | Admin                 |
 | GET    | `/product/related-product/:categoryId`     | Public                |
-| POST   | `/product-token/add`                       | Admin                 |
-| GET    | `/product-token/`                          | Public                |
-| PUT    | `/product-token/edit`                      | Admin                 |
-| PUT    | `/product-token/edit-status`               | Admin                 |
 | POST   | `/city/add`                                | Admin                 |
 | GET    | `/city/`                                   | Admin or staff        |
 | GET    | `/city/web`                                | Public                |
@@ -414,50 +410,6 @@ An `ID` is sent as a string. The Joi schemas require a non-empty string; service
 **Path parameters:** `categoryId` is the category ID.
 
 **Success response:** `200`; `data` is the list of related products.
-
-## Product Tokens
-
-### POST `/product-token/add`
-
-**Authentication:** Admin.
-
-**Payload:** JSON with required string field `name`.
-
-**Success response:** `200`; `data` is the created product-token record.
-
-### GET `/product-token/`
-
-**Authentication:** Public.
-
-**Query parameters:** Optional `page`, `per_page`, `search` (name), and `status`.
-
-**Success response:** `200`; `data` is a paginated product-token result.
-
-### PUT `/product-token/edit`
-
-**Authentication:** Admin.
-
-**Payload:** JSON.
-
-| Field     | Type   | Validation                 |
-| --------- | ------ | -------------------------- |
-| `tokenId` | string | Required product-token ID. |
-| `name`    | string | Required.                  |
-
-**Success response:** `200`; `data` is the product-token update result.
-
-### PUT `/product-token/edit-status`
-
-**Authentication:** Admin.
-
-**Payload:** JSON.
-
-| Field     | Type   | Validation                              |
-| --------- | ------ | --------------------------------------- |
-| `tokenId` | string | Required product-token ID.              |
-| `status`  | string | Required; use `Active` or `Deactivate`. |
-
-**Success response:** `200`; `data` is the product-token-status update result.
 
 ## Cities
 

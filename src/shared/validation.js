@@ -145,32 +145,6 @@ export const updatedCategoryStatusValidation = (data) => {
   return userSchema.validate(data);
 };
 
-////////////////////// Add Token   //////////////////////////
-export const addTokenValidation = (data) => {
-  const userSchema = Joi.object({
-    name: Joi.string().required(),
-  });
-  return userSchema.validate(data);
-};
-
-////////////////////// Edit Token   //////////////////////////
-export const editTokenValidation = (data) => {
-  const userSchema = Joi.object({
-    name: Joi.string().required(),
-    tokenId: Joi.string().required(),
-  });
-  return userSchema.validate(data);
-};
-
-////////////////////// Updated Status Token   //////////////////////////
-export const updatedStatusTokenValidation = (data) => {
-  const userSchema = Joi.object({
-    tokenId: Joi.string().required(),
-    status: Joi.string().required(),
-  });
-  return userSchema.validate(data);
-};
-
 ////////////////////// Display Product By Id  //////////////////////////
 export const productIdValidation = (data) => {
   const userSchema = Joi.string().required();
