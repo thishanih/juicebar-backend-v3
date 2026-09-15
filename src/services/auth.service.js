@@ -59,26 +59,21 @@ export const login = async (data) => {
 
 ///////////////// Refresh Token /////////////////////
 export const refreshToken = async (refreshTokenKey) => {
-  // Ensure refreshTokenKey is in the "Bearer <token>" format
-  if (!refreshTokenKey || !refreshTokenKey.startsWith("Bearer ")) {
-    throw HttpError.badRequest("Invalid token format");
+  if (!refreshTokenKey) {
+    throw HttpError.badRequest("Invalid refresh token");
   }
 
-  // Extract the token part after "Bearer "
-  const bearerToken = refreshTokenKey.split(" ")[1];
-  if (!bearerToken) throw HttpError.badRequest("Token missing");
-
-  const refreshTokenHash = hashRefreshToken(bearerToken);
+  const refreshTokenHash = hashRefreshToken(refreshTokenKey);
   let refreshTokenDecoded;
   try {
-    refreshTokenDecoded = verifyRefreshToken(bearerToken);
+    refreshTokenDecoded = verifyRefreshToken(refreshTokenKey);
   } catch (err) {
     throw HttpError.badRequest("Refresh token services are not verified");
   }
 
   const refreshData = await RefreshTokenModel.findOneAndUpdate(
     { token: refreshTokenHash, revokedAt: null },
-    { $set: { revokedAt: new Date(), familyId: randomUUID() } },
+    { $set: { revokedAt: new Date() } },
     { new: true }
   );
 

@@ -19,7 +19,8 @@ authRouter.post("/login", apiKeyAuthorization, loginRateLimit, async (req, res, 
 
 authRouter.post("/refresh-token", async (req, res, next) => {
   try {
-    const result = await refreshToken(req.headers["authorization"]);
+    const refreshTokenKey = req.body?.refresh_token;
+    const result = await refreshToken(refreshTokenKey);
     res.status(200).json({
       message: "Successfully create refresh token",
       data: result,
