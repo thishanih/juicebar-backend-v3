@@ -9,8 +9,8 @@ export const OrderStatusCountByDateServices = async (request) => {
   const { error, value } = dashboardDateRangeValidation(request);
   if (error) throw HttpError.badRequest(error.details[0].message);
 
-  const start = moment(value.startDate).startOf("day");
-  const end = moment(value.endDate).endOf("day");
+  const start = moment.utc(value.startDate).startOf("day");
+  const end = moment.utc(value.endDate).endOf("day");
   const statusCounts = Object.fromEntries(
     Object.keys(orderStatus).map((statusKey) => [statusKey, 0])
   );
@@ -46,8 +46,8 @@ export const OrderStatusCountByDateServices = async (request) => {
 
 export const OrderIncomeSummaryServices = async (request) => {
   const { startDate, endDate } = request;
-  const start = moment(startDate, moment.ISO_8601, true);
-  const end = moment(endDate, moment.ISO_8601, true);
+  const start = moment.utc(startDate, moment.ISO_8601, true);
+  const end = moment.utc(endDate, moment.ISO_8601, true);
 
   if (!start.isValid() || !end.isValid()) {
     throw HttpError.badRequest("startDate and endDate must be valid ISO dates");
@@ -105,8 +105,8 @@ export const OrderPerformanceChartData = async (request) => {
   const { error, value } = dashboardDateRangeValidation(request);
   if (error) throw HttpError.badRequest(error.details[0].message);
 
-  const start = moment(value.startDate).startOf("day");
-  const end = moment(value.endDate).endOf("day");
+  const start = moment.utc(value.startDate).startOf("day");
+  const end = moment.utc(value.endDate).endOf("day");
 
   try {
     const dateFormat = "YYYY-MM-DD";
@@ -160,12 +160,12 @@ export const OrderPerformanceChartData = async (request) => {
     const result = await orderModel.aggregate(pipeline);
 
     const datesArray = Array.from({ length: end.diff(start, "days") + 1 }, (_, index) =>
-      moment(start).add(index, "days").toDate()
+      start.clone().add(index, "days").toDate()
     );
 
     const completeResult = datesArray.map((date) => {
       const match = result.find(
-        (item) => moment(item.date).format(dateFormat) === moment(date).format(dateFormat)
+        (item) => moment.utc(item.date).format(dateFormat) === moment.utc(date).format(dateFormat)
       );
       return {
         date,
@@ -194,8 +194,8 @@ export const ProductSaleByDateServices = async (request) => {
   const { error, value } = dashboardDateRangeValidation(request);
   if (error) throw HttpError.badRequest(error.details[0].message);
 
-  const start = moment(value.startDate).startOf("day");
-  const end = moment(value.endDate).endOf("day");
+  const start = moment.utc(value.startDate).startOf("day");
+  const end = moment.utc(value.endDate).endOf("day");
 
   const query = {
     createdAt: {
