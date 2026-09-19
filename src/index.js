@@ -9,16 +9,15 @@ import * as Sentry from "@sentry/node";
 import HttpError from "./shared/htttp.error.js";
 import { logger } from "./middleware/logEvents.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+import Database from "./shared/database.js";
+import apiRouter from "./router/api.router.js";
+import { recoverAbandonedPaymentOrders } from "./services/payment.service.js";
 
 const env = process.env.NODE_ENV ? process.env.NODE_ENV.trim() : "development";
 dotenv.config({
   path: `env/${env}.env`,
 });
 console.log("Running environment : " + env);
-
-const { default: Database } = await import("./shared/database.js");
-const { default: apiRouter } = await import("./router/api.router.js");
-const { recoverAbandonedPaymentOrders } = await import("./services/payment.service.js");
 
 const app = express();
 app.set("trust proxy", 1);
