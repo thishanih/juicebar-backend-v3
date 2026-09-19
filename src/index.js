@@ -9,6 +9,9 @@ import * as Sentry from "@sentry/node";
 import HttpError from "./shared/htttp.error.js";
 import { logger } from "./middleware/logEvents.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+import Database from "./shared/database.js";
+import apiRouter from "./router/api.router.js";
+import { recoverAbandonedPaymentOrders } from "./services/payment.service.js";
 
 const env = process.env.NODE_ENV ? process.env.NODE_ENV.trim() : "development";
 dotenv.config({
@@ -16,18 +19,24 @@ dotenv.config({
 });
 console.log("Running environment : " + env);
 
-const { default: Database } = await import("./shared/database.js");
-const { default: apiRouter } = await import("./router/api.router.js");
-const { recoverAbandonedPaymentOrders } = await import("./services/payment.service.js");
-
 const app = express();
 app.set("trust proxy", 1);
 const allowedOrigins = new Set(
   (process.env.WEB_BASE_URL || "")
     .split(",")
-    .map((origin) => origin.trim())
+    .map((origin) => origin.trim().replace(/\/$/, ""))
     .filter(Boolean)
 );
+const isDevelopmentOrigin = (origin) => {
+  if (env === "production") return false;
+
+  try {
+    const { hostname } = new URL(origin);
+    return ["localhost", "127.0.0.1", "[::1]"].includes(hostname);
+  } catch {
+    return false;
+  }
+};
 const sentryDsn = process.env.SENTRY_DSN;
 const sentryTracesSampleRate = Number(process.env.SENTRY_TRACES_SAMPLE_RATE || 0);
 const sentryEnabled = Boolean(sentryDsn);
@@ -63,7 +72,9 @@ app.use((req, res, next) => {
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+      if (!origin || allowedOrigins.has(origin.replace(/\/$/, "")) || isDevelopmentOrigin(origin)) {
+        return callback(null, true);
+      }
       return callback(HttpError.forbidden("Origin not allowed"));
     },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
